@@ -3,4 +3,4 @@ Disallow: /
 
 Disallow: /control-panel.html
 
-Sitemap: Domain dalna hoga
+Sitemap: https://ag-alien-gamerz.github.io/AG-Home/
