@@ -6,10 +6,10 @@ Website: https://ag-alien-gamerz.github.io/AG-Home/
 
 ## One-time repository setup
 
-1. Create/use your GitHub repository named **AG-Home** and set your source branch (`master`, `main` or another branch) as its default branch.
-2. Under **Settings → Actions → General**, allow GitHub Actions and the actions used by `.github/workflows/deploy.yml`. The workflow requests `contents: write` for its branch-publishing job; repository/organization policy must permit it. No personal token is required.
-3. Under **Settings → Pages → Build and deployment**, select **Source: GitHub Actions**. This workflow also saves the built site in `gh-pages`, but deploys the artifact explicitly: a `GITHUB_TOKEN` branch push does not trigger another Pages build. [GitHub documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
-4. If the `github-pages` environment requires reviewers, deployment waits for that configured approval. For unattended deployment, configure that environment accordingly. Branch restrictions must allow the default source branch.
+1. Create/use your GitHub repository named **AG-Home** and keep **master** as its default branch. `gh-pages` is generated site output, not the default branch.
+2. Under **Settings → Actions → General**, allow GitHub Actions and the actions used by `.github/workflows/deploy.yml`. Repository/organization policy must permit `contents: write` for branch publishing and `pages: write` for requesting the Pages build. No personal token is required.
+3. Under **Settings → Pages → Build and deployment**, select **Source: Deploy from a branch**, **Branch: gh-pages**, **Folder: /(root)** and Save. If `gh-pages` does not yet exist, run the workflow on `master` first: the build job creates it; select it and rerun afterwards. The deploy job validates these settings and explicitly requests their build because a `GITHUB_TOKEN` branch push does not trigger another Pages build. [Publishing documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site), [Pages build API](https://docs.github.com/en/rest/pages/pages#request-a-github-pages-build).
+4. The source workflow does not use artifact deployment or change Pages settings/default branches. GitHub's own **pages build and deployment** run handles the final publication; inspect its result and any configured environment restrictions if publication is blocked.
 5. In Firebase Auth → Settings → Authorized domains, add `ag-alien-gamerz.github.io`. Set the email-template action URL to `https://ag-alien-gamerz.github.io/AG-Home/auth-action.html`. Keep existing domains you still use.
 
 GitHub Pages availability depends on repository visibility and your GitHub plan. The Actions run and Settings → Pages display the actual published URL; do not copy a former account's address.
@@ -43,21 +43,21 @@ git commit -m "Configure AG Home automatic Pages deployment"
 git push -u origin master
 ```
 
-Use your actual default branch in the last command if it is not `master`. If the commit already exists, push it without creating a duplicate commit. Do not force-push over remote history; reconcile any rejected push normally.
+The workflow publishes `master` only. If the commit already exists, push it without creating a duplicate commit. Do not force-push over remote history; reconcile any rejected push normally.
 
-The optional `bash deploy.sh` helper checks the build and offers to commit/push the current source branch. The direct Git commands are sufficient.
+The optional `bash deploy.sh` helper checks the build and offers to commit/push `master`. The direct Git commands are sufficient.
 
 ## What each push does
 
-`.github/workflows/deploy.yml` publishes only the repository's default branch. It:
+`.github/workflows/deploy.yml` publishes only `master`. It:
 
 1. Checks out source and installs the committed dependency lockfile with Node 24.
 2. Runs unit tests.
 3. Builds `dist/` with emulators disabled and verifies the nine application pages, public assets, manifest and `/AG-Home/` links.
 4. Creates or updates **gh-pages**, containing only the generated site plus `.nojekyll`. Old generated files are replaced so removed assets do not accumulate. Treat this branch as generated output.
-5. Uploads that same build and explicitly deploys it through GitHub Pages.
+5. Validates that Pages uses the `gh-pages` root and requests its build through the Pages REST API with `pages: write` permission. No artifact-source switch is required.
 
-Default-branch pushes and manual runs deploy; feature-branch and `gh-pages` pushes do not publish. In Actions, choose **Deploy to GitHub Pages → Run workflow** on the default branch to retry. The resulting deployment URL appears on the successful run.
+`master` pushes and manual runs on `master` publish; feature-branch and `gh-pages` pushes do not run this source workflow. In Actions, choose **Deploy to GitHub Pages → Run workflow → master** to retry. The deploy job summary shows the site URL and accepted build request. Wait for GitHub's separate **pages build and deployment** run to succeed before treating the site as deployed.
 
 ## Firebase build configuration
 
@@ -87,9 +87,11 @@ Use the actual Functions environment described in README; privileged credentials
 
 | Symptom | Check |
 | --- | --- |
-| No workflow runs | Workflow is committed; Actions enabled; pushed branch is the repository's default |
+| No workflow runs | Workflow is committed; Actions enabled; pushed branch is `master` |
 | `gh-pages` push denied | Repository/organization Actions permissions and branch protection permit generated branch updates |
-| Branch exists but Pages deployment fails | Pages Source is **GitHub Actions**; inspect environment restrictions and Pages availability |
+| Branch exists but build request fails | Pages Source is **Deploy from a branch → gh-pages → /(root)**; settings saved; Pages available for this repository/plan; workflow has `pages: write` |
+| Pages API returns 404 | Enable/save Pages for this repository; check visibility/plan and token access. Retry on `master` after selecting `gh-pages` |
+| Build request accepted but site is not published | Inspect GitHub's separate **pages build and deployment** run and its environment restrictions |
 | Missing logo/CSS or broken routes | Repository name/base is **AG-Home**; `npm run build:pages` passes; nine HTML files are published at branch root |
 | Login fails after moving accounts | Add the actual Pages domain to Firebase Auth; check real provider settings |
 | Emails open the old handler | Set Firebase template action URL to the actual Pages `auth-action.html`, then request a new email |

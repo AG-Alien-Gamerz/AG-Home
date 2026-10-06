@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Optional helper; normal default-branch pushes already deploy through Actions.
+# Optional helper; master pushes already publish gh-pages through Actions.
 set -euo pipefail
 cd -- "$(dirname -- "${BASH_SOURCE[0]}")"
 for tool in git node npm; do
@@ -7,8 +7,8 @@ for tool in git node npm; do
 done
 git remote get-url origin >/dev/null || { echo 'Configure the real origin remote first; see DEPLOYMENT_COMMANDS.md.'; exit 1; }
 branch=$(git branch --show-current)
-if [[ -z "$branch" || "$branch" == 'gh-pages' ]]; then
-  echo 'Use the default source branch, not a detached checkout or generated gh-pages.'
+if [[ "$branch" != 'master' ]]; then
+  echo 'Use master; this deployment workflow publishes only the master source branch.'
   exit 1
 fi
 npm test
@@ -25,5 +25,5 @@ if ! git diff --cached --quiet; then
   git commit -m 'chore: prepare AG Home Pages deployment'
 fi
 git push -u origin "$branch"
-printf '\nPush completed. The default branch deploys automatically in GitHub Actions.\n'
+printf '\nPush completed. Actions will publish gh-pages and request its Pages build.\n'
 printf 'Monitor: https://github.com/AG-Alien-Gamerz/AG-Home/actions\n'

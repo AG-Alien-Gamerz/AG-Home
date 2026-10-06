@@ -101,13 +101,21 @@ The new real-emulator browser scenario starts with an empty products collection 
 
 Production bundle inspection confirms the named seed products and registry are absent. The existing optional administrator import remains server-only and explicit; public browsing never calls it. No production records were modified or deleted. Rules/backend behavior was preserved, and no additional backend deployment is required for the fetching change. Update the static site to publish it.
 
-## Push-to-publish repository preparation
+## Push-to-publish repository preparation (previous artifact configuration)
 
-The deployment workflow builds only the repository's default source branch, creates/updates `gh-pages` using the built-in token, and explicitly deploys the same artifact to GitHub Pages. A one-time **Pages Source: GitHub Actions** setting is documented because token-created branch commits do not trigger another Pages build. The workflow also supports manual runs. The branch publisher is pinned to its verified v4.0.0 commit.
+The previous deployment workflow built the repository's default source branch, created/updated `gh-pages` using the built-in token, and deployed the same artifact. This required **Pages Source: GitHub Actions**. It has been superseded by the branch-source correction below to match the requested `gh-pages` settings. The branch publisher remains pinned to its verified v4.0.0 commit.
 
 Local verification passed **165 unit/worker tests**, production and Functions builds, workflow YAML parsing and the new Pages output checker. The checker verifies nine direct application pages, copied assets, manifest links and the `/AG-Home/` base; it excludes commented markup. Git ignore checks confirm root/Functions local and production environment files are excluded while both examples, rules and `.nojekyll` remain publishable. Node 24 and LF shell/workflow formatting are recorded. Outdated secondary README/deployment instructions were replaced with references to the maintained guide and current repository.
 
 `origin` now points to the user-supplied `https://github.com/AG-Alien-Gamerz/AG-Home.git`. The verified repository-preparation changes are ready for a local commit and the user's push. No push, live Actions run, generated remote branch or Pages deployment has been performed or verified from this workspace; confirm those after the user's push. Firebase backend deployment and Console settings remain separate.
+
+## Branch-based Pages deployment correction — 6 October 2026
+
+Read-only GitHub Jobs/check annotations for run `37490708347` confirm the build succeeded and deployment failed in `actions/configure-pages@v5` with a Pages GET `404`. The repository API confirms `default_branch: master`, `visibility: public`, `has_pages: true`; an unauthenticated GET of the Pages endpoint also returns `404`. The supplied screenshot shows branch-source settings, but their current API availability cannot be verified without authenticated administrator access. No external repository settings were changed.
+
+The workflow now publishes only `master` (including its manual runs), preserves `gh-pages` as generated output and replaces artifact/configure-pages deployment with a Pages branch-build request. The request helper validates **Deploy from a branch → gh-pages → /(root)** before POSTing to `/pages/builds`. It uses the built-in token with `pages: write`; it does not modify the default branch or Pages configuration. The accepted request is distinct from successful publishing, which GitHub reports in its separate **pages build and deployment** run. Documentation and the optional push helper use this same setup.
+
+Local verification passed **175 tests**, including ten new mocked API tests for branch-source validation, build requests, denied/missing Pages access, rejected requests and credential handling. Production `build:pages` passed for all nine routes and static assets; workflow YAML/branch/permissions checks and `git diff --check` passed. Tests do not send authenticated build requests or prove live Pages deployment. After pushing this correction, check both workflow runs; if the authenticated Pages endpoint still returns `404`, a repository administrator must inspect/save Pages settings and verify account/repository Pages availability/access.
 
 ## Before a real release
 

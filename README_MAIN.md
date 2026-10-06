@@ -18,7 +18,7 @@ Open `http://localhost:5173/AG-Home/`. Empty Firebase overrides use the existing
 
 ## Publish
 
-Select **Settings → Pages → Source: GitHub Actions** once, then push the default source branch. The workflow tests and builds the app, creates/updates `gh-pages` and deploys the same build to Pages. Keep the repository name `AG-Home`; its routes use `/AG-Home/`.
+Keep **master** as the default branch. Select **Settings → Pages → Source: Deploy from a branch → gh-pages → /(root)** once, then push `master`. The workflow tests and builds the app, creates/updates `gh-pages` and explicitly requests its Pages build. GitHub's separate **pages build and deployment** run reports the final publishing result. Keep the repository name `AG-Home`; its routes use `/AG-Home/`.
 
 No personal deployment token or mandatory new Firebase secrets are required. Firebase backend deployment and authorized-domain/email-action configuration remain separate administrator tasks.
 

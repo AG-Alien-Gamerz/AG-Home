@@ -1,7 +1,7 @@
 name: Deploy to GitHub Pages
 on:
   push:
-    branches-ignore: [gh-pages]
+    branches: [master]
   workflow_dispatch:
 permissions:
   contents: read
@@ -10,7 +10,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   build:
-    if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+    if: github.ref == 'refs/heads/master'
     runs-on: ubuntu-latest
     permissions:
       contents: write
@@ -46,21 +46,21 @@ jobs:
           publish_dir: ./dist
           publish_branch: gh-pages
           keep_files: false
-      - uses: actions/upload-pages-artifact@v3
-        with:
-          path: ./dist
   deploy:
     needs: build
     runs-on: ubuntu-latest
     permissions:
       contents: read
       pages: write
-      id-token: write
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
     steps:
-      # Deploy explicitly: GITHUB_TOKEN branch pushes do not trigger a Pages build.
-      - uses: actions/configure-pages@v5
-      - id: deployment
-        uses: actions/deploy-pages@v4
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      # Token-created commits do not trigger Pages; request the configured branch build.
+      - name: Request gh-pages branch deployment
+        run: node scripts/request-pages-build.mjs
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

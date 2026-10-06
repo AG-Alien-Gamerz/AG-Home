@@ -12,7 +12,7 @@
     "preview": "vite preview",
     "predeploy": "npm run build",
     "deploy": "gh-pages -d dist --nojekyll",
-    "test": "node --test tests/unit.test.mjs tests/push-worker.test.mjs tests/catalogue-localization.test.mjs",
+    "test": "node --test tests/unit.test.mjs tests/push-worker.test.mjs tests/catalogue-localization.test.mjs tests/pages-deployment.test.mjs",
     "test:browser": "playwright test",
     "test:rules": "node --test tests/rules.test.mjs",
     "test:functions": "node --test tests/functions.test.mjs"
