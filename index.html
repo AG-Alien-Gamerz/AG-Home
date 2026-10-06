@@ -1,0 +1,231 @@
+<!DOCTYPE html>
+<html lang="en" class="auth-pending">
+<head>
+    <script src="/AG-Home/theme-init.js"></script>
+    <script src="/AG-Home/site-loader.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AG | Home</title>
+
+    <link rel="icon" href="/AG-Home/logo.png" type="logo.png">
+
+    <meta name="description" content="AG ہوم پورٹل میں سائن ان کریں اور AG Electronics Pvt. کی خدمات تک رسائی حاصل کریں۔ لمیٹڈ">
+
+    <meta name="robots" content="index, follow">
+  <script type="module" crossorigin src="/AG-Home/assets/index-DsYyx4UJ.js"></script>
+  <link rel="modulepreload" crossorigin href="/AG-Home/assets/localization-BMu7Mjpi.js">
+  <link rel="modulepreload" crossorigin href="/AG-Home/assets/character-Cf7yEHZq.js">
+  <link rel="modulepreload" crossorigin href="/AG-Home/assets/notifications-BSgMVZUt.js">
+  <link rel="modulepreload" crossorigin href="/AG-Home/assets/settings-cZtdaWJp.js">
+  <link rel="stylesheet" crossorigin href="/AG-Home/assets/character-DzBP1L9p.css">
+</head>
+<body data-theme="light">
+    <header class="site-header"><a class="brand" href="index.html"><img src="/AG-Home/logo.png" alt="">AG Home</a><nav aria-label="Main"><a href="about.html" data-i18n="nav.about">About Us</a><a href="contact.html" data-i18n="nav.contact">Contact Us</a></nav></header>
+    <main class="container auth-shell">
+        <h1 data-i18n="head.home">AG | Home </h1>
+
+        <div class="header-controls">
+            <button id="settingsBtn" class="settings-btn" title="Settings">
+                <svg width="20" height="20" viewBox="0 0 20 20">
+                    <path fill="currentColor" d="M11.49 3.17c-.38-1.56-2.6-1.56-2.98 0a1.532 1.532 0 01-2.286.948c-1.372-.836-2.942.734-2.106 2.106.54.886.061 2.042-.947 2.287-1.561.379-1.561 2.6 0 2.978a1.532 1.532 0 01.947 2.287c-.836 1.372.734 2.942 2.106 2.106a1.532 1.532 0 012.287.947c.379 1.561 2.6 1.561 2.978 0a1.533 1.533 0 012.287-.947c1.372.836 2.942-.734 2.106-2.106a1.533 1.533 0 01.947-2.287c1.561-.379 1.561-2.6 0-2.978a1.532 1.532 0 01-.947-2.287c.836-1.372-.734-2.942-2.106-2.106a1.532 1.532 0 01-2.287-.947zM10 13a3 3 0 100-6 3 3 0 000 6z"/>
+                </svg>
+            </button>
+            <div class="user-info-wrapper">
+                <div class="user-id-label" data-i18n="msg.userId">User ID</div>
+                <div id="userDisplay" class="user-display"></div>
+            </div>
+            <button id="logoutBtn" class="logout-btn hidden"><span data-i18n="btn.logout">Logout</span></button>
+        </div>
+
+        <aside class="auth-intro"><span class="eyebrow">AG HOME</span><h2 data-i18n="home.title">Everything AG, in one place.</h2><p data-i18n="home.description">Explore AG products, learn about AG and get in touch. Welcome to our home on the web.</p><div class="business-art" aria-hidden="true"><div class="art-window"><div class="art-dots">● ● ●</div><span>AG</span><div class="art-line"></div><div class="art-line short"></div><div class="art-tiles"><i>◎</i><i>⊞</i><i>◇</i></div></div></div></aside><div class="auth-container-wrapper">
+            <div id="loginForm" class="login-container">
+                <h2 data-i18n="head.welcome">Welcome Back</h2>
+                <section id="verificationNotice" class="verification-notice hidden" aria-live="polite"><strong data-i18n="auth.verificationRequired">Verify your email before signing in.</strong><p id="verificationMessage"></p><p class="field-hint" data-i18n="auth.verificationHint">Verify through your email, then sign in. To resend, enter your email and password.</p><button type="button" id="resendVerification" class="secondary-btn" data-i18n="auth.resend">Resend verification email</button></section>
+                <div class="auth-layout">
+                    <div class="auth-main">
+                        <form id="login">
+<div class="input-group"><label for="loginEmail" data-i18n="login.identifier">Email or Username</label><input id="loginEmail" name="identifier" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" maxlength="254" required dir="auto"></div>
+<div class="input-group password-group"><label for="loginPassword" data-i18n="login.password">Password</label><input id="loginPassword" name="password" type="password" autocomplete="current-password" required data-password></div>
+<button type="button" id="showReset" class="text-button" data-i18n="auth.reset">Reset password</button>
+<button type="submit" class="login-btn" data-i18n="login.submit">Log In</button></form>
+                        <p><span data-i18n="login.noAccount">Don't have an account?</span> <button id="showSignup" type="button" class="text-button"><span data-i18n="login.signUp">Sign Up</span></button></p>
+                    </div>
+                    <div class="auth-divider">
+                        <span data-i18n="login.or">or</span>
+                    </div>
+                    <div class="auth-social">
+                        <button id="googleLogin" class="social-btn google">
+                            <span class="provider-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.9-1.75 2.98-4.33 2.98-7.36Z"/><path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.41l-3.24-2.51c-.9.6-2.05.97-3.38.97-2.6 0-4.8-1.76-5.59-4.13H3.07v2.59A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.41 13.92A6 6 0 0 1 6.1 12c0-.67.11-1.32.31-1.92V7.49H3.07A10 10 0 0 0 2 12c0 1.61.39 3.14 1.07 4.51l3.34-2.59Z"/><path fill="#EA4335" d="M12 5.95c1.47 0 2.79.51 3.82 1.5l2.86-2.86A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.93 5.49l3.34 2.59C7.2 7.71 9.4 5.95 12 5.95Z"/></svg></span>
+                            <span data-i18n="auth.google">Login with Google</span>
+                        </button>
+                        <button id="githubLogin" class="social-btn github">
+                            <svg height="16" viewBox="0 0 16 16" width="16" class="github-icon">
+                                <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                            </svg>
+                            <span data-i18n="auth.github">Sign in with GitHub</span>
+                        </button>
+                        <!-- <button id="facebookLogin" class="social-btn facebook">
+                            <svg height="16" viewBox="0 0 16 16" width="16">
+                                <path fill="#1877F2" d="M16 8.049c0-4.446-3.582-8.05-8-8.05C3.58 0-.002 3.603-.002 8.05c0 4.017 2.926 7.347 6.75 7.951v-5.625h-2.03V8.05H6.75V6.275c0-2.017 1.195-3.131 3.022-3.131.876 0 1.791.166 1.791.166v1.98h-1.009c-.993 0-1.303.621-1.303 1.258v1.51h2.218l-.354 2.326H9.25V16c3.824-.604 6.75-3.934 6.75-7.951z"/>
+                            </svg>
+                            <span data-i18n="auth.facebook">Login with Facebook</span>
+                        </button> -->
+                        <button id="yahooLogin" class="social-btn yahoo">
+                            <svg height="16" viewBox="0 0 24 24" width="16" fill="currentColor">
+                                <path d="M3 4h8v2H3V4zm0 6h8v2H3v-2zm0 6h8v2H3v-2zM12 4v2h9V4h-9zm0 6v2h9v-2h-9zm0 6v2h9v-2h-9z"/>
+                            </svg>
+                            <span data-i18n="auth.yahoo">Login with Yahoo</span>
+                        </button>
+                        <button id="phoneLogin" class="social-btn phone">
+                            <svg height="16" viewBox="0 0 16 16" width="16" fill="currentColor">
+                                <path d="M10.5 1h-5C4.1 1 3 2.1 3 3.5v9C3 13.9 4.1 15 5.5 15h5c1.4 0 2.5-1.1 2.5-2.5v-9C13 2.1 11.9 1 10.5 1zm0 12h-5c-.3 0-.5-.2-.5-.5v-9c0-.3.2-.5.5-.5h5c.3 0 .5.2.5.5v9c0 .3-.2.5-.5.5z"/>
+                            </svg>
+                            <span data-i18n="auth.phone">Login with Phone</span>
+                        </button>
+                        <button id="guestLogin" class="social-btn guest">
+                            <svg height="16" viewBox="0 0 16 16" width="16" fill="currentColor">
+                                <path d="M8 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm.5 1H7.5C5.57 9 4 10.57 4 12.5v1.5c0 .28.22.5.5.5h7c.28 0 .5-.22.5-.5V12.5C12 10.57 10.43 9 8.5 9h-.5z"/>
+                            </svg>
+                            <span data-i18n="auth.guest">Continue as Guest</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div id="signupForm" class="signup-container hidden">
+                <h2 data-i18n="login.createAccount">Create Account</h2>
+                <div class="auth-layout">
+                    <div class="auth-main">
+                        <form id="signup"><div class="form-grid">
+<div class="input-group"><label for="firstName" data-i18n="signup.firstName">First Name</label><input id="firstName" name="firstName" autocomplete="given-name" maxlength="80" required></div>
+<div class="input-group"><label for="secondName" data-i18n="signup.secondName">Second Name</label><input id="secondName" name="secondName" autocomplete="additional-name" maxlength="80" required></div>
+<div class="input-group"><label for="lastName" data-i18n="signup.lastName">Last Name (optional)</label><input id="lastName" name="lastName" autocomplete="family-name" maxlength="80"></div>
+<div class="input-group"><label for="username" data-i18n="signup.username">Username</label><input id="username" name="username" autocomplete="nickname" minlength="3" maxlength="30" required></div>
+</div><div class="input-group"><label for="signupEmail" data-i18n="login.email">Email</label><input id="signupEmail" name="email" type="email" autocomplete="email" required dir="ltr"></div>
+<div class="input-group"><label for="dob" data-i18n="signup.dob">Date of Birth</label><input id="dob" name="dob" type="date" autocomplete="bday" required></div>
+<div class="input-group password-group"><label for="signupPassword" data-i18n="login.password">Password</label><input id="signupPassword" name="password" type="password" autocomplete="new-password" minlength="8" required data-password data-strength></div>
+<div class="input-group password-group"><label for="signupConfirm" data-i18n="signup.confirm">Confirm Password</label><input id="signupConfirm" name="confirmPassword" type="password" autocomplete="new-password" minlength="8" required data-password><p id="passwordMatch" class="field-hint" aria-live="polite"></p></div>
+<button type="submit" class="signup-btn" data-i18n="login.createAccount">Create Account</button></form>
+                        <p><span data-i18n="msg.haveAccount">Already have an account?</span> <button id="showLogin" type="button" class="text-button"><span data-i18n="login.submit">Login</span></button></p>
+                    </div>
+                    <div class="auth-divider">
+                        <span data-i18n="login.or">or</span>
+                    </div>
+                    <div class="auth-social">
+                        <button id="googleSignup" class="social-btn google">
+                            <span class="provider-mark" aria-hidden="true"><svg viewBox="0 0 24 24"><path fill="#4285F4" d="M21.6 12.23c0-.71-.06-1.39-.18-2.05H12v3.88h5.38a4.6 4.6 0 0 1-2 3.02v2.51h3.24c1.9-1.75 2.98-4.33 2.98-7.36Z"/><path fill="#34A853" d="M12 22c2.7 0 4.96-.9 6.62-2.41l-3.24-2.51c-.9.6-2.05.97-3.38.97-2.6 0-4.8-1.76-5.59-4.13H3.07v2.59A10 10 0 0 0 12 22Z"/><path fill="#FBBC05" d="M6.41 13.92A6 6 0 0 1 6.1 12c0-.67.11-1.32.31-1.92V7.49H3.07A10 10 0 0 0 2 12c0 1.61.39 3.14 1.07 4.51l3.34-2.59Z"/><path fill="#EA4335" d="M12 5.95c1.47 0 2.79.51 3.82 1.5l2.86-2.86A9.6 9.6 0 0 0 12 2a10 10 0 0 0-8.93 5.49l3.34 2.59C7.2 7.71 9.4 5.95 12 5.95Z"/></svg></span>
+                            <span data-i18n="auth.googleSignup">Sign up with Google</span>
+                        </button>
+                        <button id="githubSignup" class="social-btn github">
+                            <svg height="16" viewBox="0 0 16 16" width="16" class="github-icon">
+                                <path fill="currentColor" d="M8 0C3.58 0 0 3.58 0 8c0 3.54 2.29 6.53 5.47 7.59.4.07.55-.17.55-.38 0-.19-.01-.82-.01-1.49-2.01.37-2.53-.49-2.69-.94-.09-.23-.48-.94-.82-1.13-.28-.15-.68-.52-.01-.53.63-.01 1.08.58 1.23.82.72 1.21 1.87.87 2.33.66.07-.52.28-.87.51-1.07-1.78-.2-3.64-.89-3.64-3.95 0-.87.31-1.59.82-2.15-.08-.2-.36-1.02.08-2.12 0 0 .67-.21 2.2.82.64-.18 1.32-.27 2-.27.68 0 1.36.09 2 .27 1.53-1.04 2.2-.82 2.2-.82.44 1.1.16 1.92.08 2.12.51.56.82 1.27.82 2.15 0 3.07-1.87 3.75-3.65 3.95.29.25.54.73.54 1.48 0 1.07-.01 1.93-.01 2.2 0 .21.15.46.55.38A8.013 8.013 0 0016 8c0-4.42-3.58-8-8-8z"></path>
+                            </svg>
+                            <span data-i18n="auth.githubSignup">Sign up with GitHub</span>
+                        </button>
+                        <!-- <button id="facebookSignup" class="social-btn facebook">
+                            <svg height="16" viewBox="0 0 16 16" width="16">
+                                <path fill="#1877F2" d="M16 8.049c0-4.446-3.582-8.05-8-8.05C3.58 0-.002 3.603-.002 8.05c0 4.017 2.926 7.347 6.75 7.951v-5.625h-2.03V8.05H6.75V6.275c0-2.017 1.195-3.131 3.022-3.131.876 0 1.791.166 1.791.166v1.98h-1.009c-.993 0-1.303.621-1.303 1.258v1.51h2.218l-.354 2.326H9.25V16c3.824-.604 6.75-3.934 6.75-7.951z"/>
+                            </svg>
+                            <span data-i18n="auth.facebookSignup">Sign up with Facebook</span>
+                        </button> -->
+                        <button id="yahooSignup" class="social-btn yahoo">
+                            <svg height="16" viewBox="0 0 24 24" width="16" fill="currentColor">
+                                <path d="M3 4h8v2H3V4zm0 6h8v2H3v-2zm0 6h8v2H3v-2zM12 4v2h9V4h-9zm0 6v2h9v-2h-9zm0 6v2h9v-2h-9z"/>
+                            </svg>
+                            <span data-i18n="auth.yahooSignup">Sign up with Yahoo</span>
+                        </button>
+                        <button id="phoneSignup" class="social-btn phone">
+                            <svg height="16" viewBox="0 0 16 16" width="16" fill="currentColor">
+                                <path d="M10.5 1h-5C4.1 1 3 2.1 3 3.5v9C3 13.9 4.1 15 5.5 15h5c1.4 0 2.5-1.1 2.5-2.5v-9C13 2.1 11.9 1 10.5 1zm0 12h-5c-.3 0-.5-.2-.5-.5v-9c0-.3.2-.5.5-.5h5c.3 0 .5.2.5.5v9c0 .3-.2.5-.5.5z"/>
+                            </svg>
+                            <span data-i18n="auth.phoneSignup">Sign up with Phone</span>
+                        </button>
+                        <button id="guestSignup" class="social-btn guest">
+                            <svg height="16" viewBox="0 0 16 16" width="16" fill="currentColor">
+                                <path d="M8 8a2 2 0 1 0 0-4 2 2 0 0 0 0 4zm.5 1H7.5C5.57 9 4 10.57 4 12.5v1.5c0 .28.22.5.5.5h7c.28 0 .5-.22.5-.5V12.5C12 10.57 10.43 9 8.5 9h-.5z"/>
+                            </svg>
+                            <span data-i18n="auth.guestSignup">Continue as Guest</span>
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+<div id="resetPanel" class="auth-extra hidden"><h2 data-i18n="auth.reset">Reset password</h2><form id="resetForm"><label for="resetEmail" data-i18n="login.email">Email</label><input id="resetEmail" type="email" autocomplete="email" dir="ltr" required><button type="submit" class="primary-btn" data-i18n="auth.reset">Reset password</button><button id="resetBack" type="button" class="text-button" data-i18n="login.submit">Log In</button></form></div>
+<div id="mfaPanel" class="auth-extra hidden"><h2 data-i18n="security.mfa">2-step verification</h2><form id="mfaForm"><label for="mfaFactor" data-i18n="security.mfa">2-step verification</label><select id="mfaFactor"></select><div id="mfaRecaptcha"></div><button id="mfaSend" type="button" data-i18n="phone.sendOtp">Send OTP</button><label for="mfaCode" data-i18n="security.code">Verification code</label><input id="mfaCode" autocomplete="one-time-code" inputmode="numeric" pattern="[0-9]{6}" maxlength="6" required><button type="submit" class="primary-btn" data-i18n="btn.submit">Submit</button><button id="mfaBack" type="button" data-i18n="btn.cancel">Cancel</button></form></div>
+<!-- Phone Login Modal -->
+        <div id="phoneLoginModal" class="modal hidden">
+            <div class="modal-content phone-login-modal">
+                <div class="modal-header">
+                    <h2 data-i18n="modal.phoneLogin">Phone Number Login</h2>
+                    <button type="button" class="close-modal-btn" id="closePhoneModal">&times;</button>
+                </div>
+                <div id="phoneLoginStep1" class="phone-step">
+                    <form id="phoneForm">
+                        <div class="input-group">
+                            <label for="phoneNumber" data-i18n="phone.enterNumber">Enter your phone number:</label>
+                            <input type="tel" id="phoneNumber" placeholder="+92 300 1234567" autocomplete="tel" inputmode="tel" dir="ltr" aria-describedby="phoneHint" required>
+                            <p id="phoneHint" class="field-hint" data-i18n="phone.hint">Include the country code. SMS rates may apply.</p>
+                        </div>
+                        <a href="privacy.html" class="field-hint" data-i18n="nav.privacy">Privacy</a>
+                        <div id="recaptcha-container" style="margin: 15px 0;"></div>
+                        <button type="submit" id="sendPhoneOTPBtn" class="login-btn"><span data-i18n="phone.sendOtp">Send OTP</span></button>
+                    </form>
+                </div>
+                <div id="phoneLoginStep2" class="phone-step hidden">
+                    <p id="phoneStatus" class="field-hint" role="status"></p>
+                    <form id="phoneOTPForm">
+                        <div class="input-group">
+                            <label for="otpCode" data-i18n="phone.enterCode">Enter the 6-digit code sent to your phone:</label>
+                            <input type="text" id="otpCode" placeholder="000000" autocomplete="one-time-code" inputmode="numeric" dir="ltr" maxlength="6" pattern="[0-9]{6}" required>
+                        </div>
+                        <button type="submit" id="verifyPhoneOTPBtn" class="login-btn"><span data-i18n="phone.verifyLogin">Verify & Login</span></button>
+                        <button type="button" id="resendPhoneOTPBtn" class="secondary-btn" disabled data-i18n="phone.resend">Resend code</button>
+                        <button type="button" id="backToPhoneBtn" class="text-button"><span data-i18n="phone.useNumber">Use different number</span></button>
+                    </form>
+                </div>
+                <p id="phoneResendWait" class="field-hint" aria-live="off"></p>
+            </div>
+        </div>
+
+        <div id="settingsModal" class="modal hidden">
+            <div class="modal-content">
+                <form class="settings-form">
+                    <div class="settings-section">
+                        <h3 data-i18n="settings.theme">Theme Settings</h3>
+                        <div class="theme-selector">
+                            <button type="button" class="theme-btn" data-theme="light" data-i18n="settings.themeLight">Light</button>
+                            <button type="button" class="theme-btn" data-theme="dark" data-i18n="settings.themeDark">Dark</button>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3 data-i18n="settings.display">Display Settings</h3>
+                        <div class="input-group">
+                            <label data-i18n="settings.showEmail">
+                                <input type="checkbox" id="showEmail" checked>
+                                Show email in header
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="settings-section">
+                        <h3 data-i18n="settings.language">Language</h3>
+                        <div class="language-selector">
+                            <button type="button" class="language-btn" data-language="en" title="English" data-i18n="settings.languageEn">🇺🇸 English</button>
+                            <button type="button" class="language-btn" data-language="ur" title="Urdu" data-i18n="settings.languageUr">🇵🇰 اردو</button>
+                        </div>
+                    </div>
+                    <button type="button" id="closeSettings" class="close-btn" data-i18n="settings.close">Close Settings</button>
+                </form>
+            </div>
+        </div>
+    </main>
+
+    <!-- Scripts with type="module" to support ES6 imports -->
+    <script nomodule>
+        document.body.innerHTML = '<div class="error-message">Your browser does not support ES modules. Please use a modern browser like Chrome, Firefox, or Edge.</div>';
+    </script>
+
+</body>
+</html>

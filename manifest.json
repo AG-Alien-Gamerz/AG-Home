@@ -1,0 +1,17 @@
+{
+  "name": "AG Home",
+  "short_name": "AG Home",
+  "start_url": "/AG-Home/index.html",
+  "display": "standalone",
+  "background_color": "#ffffff",
+  "theme_color": "#087d74",
+  "gcm_sender_id": "103953800507",
+  "scope": "/AG-Home/",
+  "icons": [
+    {
+      "src": "/AG-Home/logo.png",
+      "sizes": "147x132",
+      "type": "image/png"
+    }
+  ]
+}
