@@ -1,15 +1,17 @@
 {
   "name": "AG-Home",
   "version": "1.0.0",
-  "description": "",
+  "description": "AG Home business website with Firebase authentication, products, team history and organization map.",
   "main": "index.js",
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:pages": "npm run build && npm run check:pages",
+    "check:pages": "node scripts/check-pages-build.mjs",
     "build:hosting": "vite build --outDir ../hosting-dist/AG-Home",
     "preview": "vite preview",
     "predeploy": "npm run build",
-    "deploy": "gh-pages -d dist",
+    "deploy": "gh-pages -d dist --nojekyll",
     "test": "node --test tests/unit.test.mjs tests/push-worker.test.mjs tests/catalogue-localization.test.mjs",
     "test:browser": "playwright test",
     "test:rules": "node --test tests/rules.test.mjs",
@@ -30,7 +32,6 @@
     "gh-pages": "6.1.1",
     "vite": "^8.0.16"
   },
-  "homepage": "https://ag-pixel-creater.github.io/AG-Home/",
   "overrides": {
     "@grpc/grpc-js": "^1.13.6",
     "protobufjs": "^7.6.5",

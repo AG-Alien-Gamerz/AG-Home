@@ -1,303 +1,100 @@
-# GitHub Pages Deployment - EXACT COMMANDS
+# AG Home: push-to-publish deployment
 
-**Target URL:** https://ag-pixel-creater.github.io/AG-Home/
+Repository: https://github.com/AG-Alien-Gamerz/AG-Home
 
----
+Website: https://ag-alien-gamerz.github.io/AG-Home/
 
-## 🔐 STEP 1: Configure GitHub Secrets (One-time setup)
+## One-time repository setup
 
-Open GitHub and navigate to:  
-`https://github.com/AG-Pixel-creater/AG-Home/settings/secrets/actions`
+1. Create/use your GitHub repository named **AG-Home** and set your source branch (`master`, `main` or another branch) as its default branch.
+2. Under **Settings → Actions → General**, allow GitHub Actions and the actions used by `.github/workflows/deploy.yml`. The workflow requests `contents: write` for its branch-publishing job; repository/organization policy must permit it. No personal token is required.
+3. Under **Settings → Pages → Build and deployment**, select **Source: GitHub Actions**. This workflow also saves the built site in `gh-pages`, but deploys the artifact explicitly: a `GITHUB_TOKEN` branch push does not trigger another Pages build. [GitHub documentation](https://docs.github.com/en/pages/getting-started-with-github-pages/configuring-a-publishing-source-for-your-github-pages-site).
+4. If the `github-pages` environment requires reviewers, deployment waits for that configured approval. For unattended deployment, configure that environment accordingly. Branch restrictions must allow the default source branch.
+5. In Firebase Auth → Settings → Authorized domains, add `ag-alien-gamerz.github.io`. Set the email-template action URL to `https://ag-alien-gamerz.github.io/AG-Home/auth-action.html`. Keep existing domains you still use.
 
-Click **"New repository secret"** and add these 14 secrets:
+GitHub Pages availability depends on repository visibility and your GitHub plan. The Actions run and Settings → Pages display the actual published URL; do not copy a former account's address.
 
-### Required Secrets (Get values from Firebase Console)
+## Commit and push
 
-```bash
-# Using GitHub CLI (Alternative method):
-gh secret set VITE_FIREBASE_API_KEY -b "AIzaSyD..."
-gh secret set VITE_FIREBASE_AUTH_DOMAIN -b "your-project.firebaseapp.com"
-gh secret set VITE_FIREBASE_PROJECT_ID -b "your-project-id"
-gh secret set VITE_FIREBASE_STORAGE_BUCKET -b "your-project.appspot.com"
-gh secret set VITE_FIREBASE_MESSAGING_SENDER_ID -b "123456789"
-gh secret set VITE_FIREBASE_APP_ID -b "1:123456789:web:abc123..."
-gh secret set VITE_FIREBASE_MEASUREMENT_ID -b "G-XXXXXXXXXX"
-gh secret set VITE_FIREBASE_VAPID_KEY -b "BF..."
-gh secret set VITE_ADMIN_EMAIL -b "admin@example.com"
-gh secret set VITE_ENVIRONMENT -b "production"
-gh secret set VITE_FUNCTIONS_REGION -b "us-central1"
-gh secret set VITE_FUNCTIONS_EMULATOR_HOST -b ""
-gh secret set VITE_FUNCTIONS_EMULATOR_PORT -b ""
+The local checkout may not have an `origin` remote yet. Check first:
+
+```powershell
+git remote -v
+git branch --show-current
 ```
 
----
+If no `origin` exists, add **your real repository URL**, replacing this example:
 
-## 🚀 STEP 2: Deploy to GitHub Pages (Main Deployment)
+```powershell
+git remote add origin https://github.com/AG-Alien-Gamerz/AG-Home.git
+```
 
-### Option A: Using Git Commands (Recommended)
+If `origin` already exists, verify it points to the intended account; change it only if needed with `git remote set-url origin <actual-url>`.
 
-```bash
-# 1. Navigate to project directory
-cd /workspaces/AG-Home
+Check the build before pushing:
 
-# 2. Ensure you're on master branch
-git checkout master
-git pull origin master
-
-# 3. Stage all changes
+```powershell
+npm ci
+npm test
+npm run build:pages
+git status --short
 git add .
-
-# 4. Commit with descriptive message
-git commit -m "chore: deploy to GitHub Pages
-
-- Fixed manifest.json paths for /AG-Home/ base path
-- Corrected privacy.html back link to relative path
-- Updated service worker registration for GitHub Pages
-- Created GitHub Actions deployment workflow (deploy.yml)
-- Added .env.example for GitHub Secrets reference
-- Created 404.html for direct page access
-
-Deployment URL: https://ag-pixel-creater.github.io/AG-Home/
-Firebase Services: Auth, Firestore, Storage, Functions, Messaging"
-
-# 5. Push to master (triggers GitHub Actions)
-git push origin master
-
-# 6. Monitor deployment
-gh workflow run deploy.yml
-gh run list --workflow=deploy.yml
+git commit -m "Configure AG Home automatic Pages deployment"
+git push -u origin master
 ```
 
-### Option B: Using Deploy Script
+Use your actual default branch in the last command if it is not `master`. If the commit already exists, push it without creating a duplicate commit. Do not force-push over remote history; reconcile any rejected push normally.
 
-```bash
-# Make script executable
-chmod +x deploy.sh
+The optional `bash deploy.sh` helper checks the build and offers to commit/push the current source branch. The direct Git commands are sufficient.
 
-# Run deployment script
-./deploy.sh
-# Follow interactive prompts
+## What each push does
+
+`.github/workflows/deploy.yml` publishes only the repository's default branch. It:
+
+1. Checks out source and installs the committed dependency lockfile with Node 24.
+2. Runs unit tests.
+3. Builds `dist/` with emulators disabled and verifies the nine application pages, public assets, manifest and `/AG-Home/` links.
+4. Creates or updates **gh-pages**, containing only the generated site plus `.nojekyll`. Old generated files are replaced so removed assets do not accumulate. Treat this branch as generated output.
+5. Uploads that same build and explicitly deploys it through GitHub Pages.
+
+Default-branch pushes and manual runs deploy; feature-branch and `gh-pages` pushes do not publish. In Actions, choose **Deploy to GitHub Pages → Run workflow** on the default branch to retry. The resulting deployment URL appears on the successful run.
+
+## Firebase build configuration
+
+The existing public AG Firebase configuration is the default. No new secrets are required just to build/publish this site. Optional repository **Variables** under Settings → Secrets and variables → Actions override it:
+
+- `VITE_FIREBASE_API_KEY`, `VITE_FIREBASE_AUTH_DOMAIN`, `VITE_FIREBASE_PROJECT_ID`
+- `VITE_FIREBASE_STORAGE_BUCKET`, `VITE_FIREBASE_MESSAGING_SENDER_ID`, `VITE_FIREBASE_APP_ID`
+- `VITE_FIREBASE_MEASUREMENT_ID`, `VITE_FIREBASE_VAPID_KEY`, `VITE_FUNCTIONS_REGION`
+- `VITE_ENABLE_TOTP_MFA=true` only after the actual Identity Platform provider is configured.
+
+Existing repository secrets with the same Firebase/region names still work; Variables take precedence. `VITE_*` values appear in public JavaScript. Never supply a service-account key or backend token in these variables. `.env`, `.env.production`, Functions project/local environment files, dependencies, build output and test artifacts are ignored; both `.env.example` templates remain versioned. The workflow builds from committed source, not local environment files.
+
+## Backend deployment is separate
+
+Pages hosts HTML/CSS/JavaScript and assets. It cannot deploy Firebase Functions/rules or configure providers/billing/templates. A Firebase administrator deploys those separately:
+
+```powershell
+npm --prefix functions ci
+npm --prefix functions run build
+npx firebase login
+npx firebase deploy --project ag-home-3db3f --only firestore:rules,functions
 ```
 
-### Option C: Manual GitHub Web Interface
+Use the actual Functions environment described in README; privileged credentials remain on the backend. Configure real OAuth credentials, phone billing/regions, email action URLs and Web Push/TOTP requirements as appropriate. Products are read only from Firestore; an empty database produces an empty catalogue.
 
-1. Go to https://github.com/AG-Pixel-creater/AG-Home
-2. Check that all files are committed
-3. Go to "Actions" tab
-4. Select "Deploy to GitHub Pages" workflow
-5. Click "Run workflow" → "Run workflow"
-6. Monitor the deployment progress
+## Troubleshooting
 
----
+| Symptom | Check |
+| --- | --- |
+| No workflow runs | Workflow is committed; Actions enabled; pushed branch is the repository's default |
+| `gh-pages` push denied | Repository/organization Actions permissions and branch protection permit generated branch updates |
+| Branch exists but Pages deployment fails | Pages Source is **GitHub Actions**; inspect environment restrictions and Pages availability |
+| Missing logo/CSS or broken routes | Repository name/base is **AG-Home**; `npm run build:pages` passes; nine HTML files are published at branch root |
+| Login fails after moving accounts | Add the actual Pages domain to Firebase Auth; check real provider settings |
+| Emails open the old handler | Set Firebase template action URL to the actual Pages `auth-action.html`, then request a new email |
+| Empty products | Verify real `products` records and public-read rules; there is no hardcoded fallback |
+| Report/chat/management fails | Verify deployed Firebase Functions/rules; static deployment alone does not create the backend |
+| New version is not visible | Wait for the current run to finish, inspect the deployment URL, then refresh cached tabs |
 
-## ✅ STEP 3: Verify Deployment
-
-### Monitor GitHub Actions
-
-```bash
-# View all workflow runs
-gh run list --workflow=deploy.yml
-
-# View specific run details
-gh run list --workflow=deploy.yml --limit 1
-
-# Watch live logs
-gh run watch --workflow=deploy.yml
-```
-
-### Test the Deployed Site
-
-```bash
-# Test main page
-curl -I https://ag-pixel-creater.github.io/AG-Home/
-# Expected: HTTP/2 200
-
-# Test direct page access
-curl -I https://ag-pixel-creater.github.io/AG-Home/index.html
-curl -I https://ag-pixel-creater.github.io/AG-Home/about.html
-curl -I https://ag-pixel-creater.github.io/AG-Home/products.html
-curl -I https://ag-pixel-creater.github.io/AG-Home/contact.html
-curl -I https://ag-pixel-creater.github.io/AG-Home/privacy.html
-
-# All should return HTTP/2 200
-```
-
-### Test in Browser
-
-1. Open https://ag-pixel-creater.github.io/AG-Home/
-2. Test navigation links (Home, About, Products, Contact, Privacy)
-3. Test direct URLs:
-   - https://ag-pixel-creater.github.io/AG-Home/about.html
-   - https://ag-pixel-creater.github.io/AG-Home/products.html
-   - https://ag-pixel-creater.github.io/AG-Home/contact.html
-4. Test Firebase authentication (if enabled)
-5. Open DevTools (F12) and verify no 404 errors
-
----
-
-## 📊 DEPLOYMENT STATUS
-
-After running the commands above, check:
-
-```bash
-# Current git status
-git status
-
-# Latest commits
-git log --oneline -5
-
-# Check if GitHub Actions is configured
-gh workflow list
-
-# Check deployment status
-gh run list --workflow=deploy.yml --limit 1
-```
-
----
-
-## 🔧 TROUBLESHOOTING
-
-### If GitHub Actions Build Fails
-
-```bash
-# 1. Check GitHub Secrets are configured
-gh secret list
-# All 13 secrets should appear
-
-# 2. Verify Vite config
-cat vite.config.js
-# Should have: base: '/AG-Home/'
-
-# 3. Test local build
-npm install
-npm run build
-# Should create dist/ folder with HTML files
-
-# 4. Check GitHub Actions logs
-gh run list --workflow=deploy.yml
-gh run view <RUN_ID> --log
-```
-
-### If Pages Show 404
-
-```bash
-# 1. Verify 404.html exists
-curl https://raw.githubusercontent.com/AG-Pixel-creater/AG-Home/master/public/404.html
-
-# 2. Check GitHub Pages settings
-# Go to: https://github.com/AG-Pixel-creater/AG-Home/settings/pages
-# Should show: Source: Deploy from branch (master / root)
-
-# 3. Check .nojekyll file exists
-curl https://raw.githubusercontent.com/AG-Pixel-creater/AG-Home/master/public/.nojekyll
-```
-
-### If Firebase Not Working
-
-```bash
-# 1. Verify secrets are set
-gh secret list | grep VITE_FIREBASE
-
-# 2. Check environment variables in build
-# Look at GitHub Actions logs for "Environment variables loaded"
-
-# 3. Test locally with .env file
-cat > .env << EOF
-VITE_FIREBASE_API_KEY=your_key
-VITE_FIREBASE_AUTH_DOMAIN=your_domain
-# ... add all 14 variables
-EOF
-
-npm run build
-npm run preview
-# Visit http://localhost:4173/AG-Home/
-```
-
----
-
-## 📝 FILES CREATED
-
-Verify these files were created:
-
-```bash
-# Check all new files exist
-ls -la .env.example
-ls -la .github/workflows/deploy.yml
-ls -la public/404.html
-ls -la DEPLOYMENT_GUIDE.md
-ls -la DEPLOYMENT_ANALYSIS.md
-ls -la deploy.sh
-
-# Verify modified files
-git diff src/manifest.json
-git diff src/privacy.html
-git diff src/js/fcm-manager.js
-```
-
----
-
-## ✓ DEPLOYMENT CHECKLIST
-
-```
-✓ .env.example created in project root
-✓ .github/workflows/deploy.yml created
-✓ public/404.html created
-✓ src/manifest.json updated with /AG-Home/ paths
-✓ src/privacy.html back link corrected
-✓ src/js/fcm-manager.js service worker paths updated
-✓ 14 GitHub Secrets configured
-✓ All changes committed to git
-✓ Changes pushed to master branch
-✓ GitHub Actions workflow triggered
-✓ Deployment completed successfully
-✓ Website accessible at https://ag-pixel-creater.github.io/AG-Home/
-```
-
----
-
-## 📚 REFERENCE FILES
-
-- **Deployment Guide:** [DEPLOYMENT_GUIDE.md](./DEPLOYMENT_GUIDE.md)
-- **Analysis Report:** [DEPLOYMENT_ANALYSIS.md](./DEPLOYMENT_ANALYSIS.md)
-- **Environment Template:** [.env.example](./.env.example)
-- **GitHub Actions Workflow:** [.github/workflows/deploy.yml](./.github/workflows/deploy.yml)
-- **Error Handler:** [public/404.html](./public/404.html)
-
----
-
-## ⏱️ ESTIMATED TIME
-
-| Step | Time | Tasks |
-|------|------|-------|
-| 1. GitHub Secrets | 5 min | Add 13 secrets from Firebase |
-| 2. Deploy | 2 min | Commit, push, workflow runs |
-| 3. Verify | 5 min | Test URLs, check for errors |
-| **Total** | **~12 minutes** | Complete deployment |
-
----
-
-## 🎯 SUCCESS INDICATORS
-
-When deployment is complete, you should see:
-
-✅ GitHub Actions workflow shows "✓ Deploy to GitHub Pages" in green  
-✅ Website loads at https://ag-pixel-creater.github.io/AG-Home/  
-✅ All pages accessible: home, about, products, contact, privacy  
-✅ Navigation links work correctly  
-✅ Direct URLs work: /about.html, /products.html, etc.  
-✅ No 404 errors in browser console  
-✅ Firebase authentication works  
-✅ CSS and images load correctly  
-
----
-
-## 🔗 DEPLOYMENT URL
-
-**Main URL:** https://ag-pixel-creater.github.io/AG-Home/  
-**Repository:** https://github.com/AG-Pixel-creater/AG-Home  
-**GitHub Actions:** https://github.com/AG-Pixel-creater/AG-Home/actions  
-
----
-
-**Last Updated:** 2026-06-22  
-**Status:** Ready for Production Deployment
+All nine application pages are real files and support direct URLs; this is not an SPA requiring arbitrary unknown paths to redirect to index. Production deployment can only be verified after a successful remote Actions run and live-service checks.

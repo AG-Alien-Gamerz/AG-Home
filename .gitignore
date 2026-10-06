@@ -1,8 +1,7 @@
-# Environment variables
+# Local environment files; publish only the documented examples.
 .env
-.env.example
-.env.local
-.env.*.local
+.env.*
+!.env.example
 
 # Dependencies
 node_modules/
@@ -12,9 +11,13 @@ functions/node_modules/
 dist/
 build/
 
-# Firebase cache
+# Firebase cache and privileged local credentials
 .firebase/
-Firebase.rules
+service-account*.json
+*-firebase-adminsdk-*.json
+*.pem
+*.p12
+*.key
 
 # Logs
 *.log
@@ -38,11 +41,13 @@ Thumbs.db
 *.temp
 *.bak
 
-!firestore.rules
-!Firebase.rules
-
 test-results/
 playwright-report/
 hosting-dist/
 *-debug.log
 ui-debug.log
+coverage/
+.cache/
+.codex/
+.agents/
+.aws/

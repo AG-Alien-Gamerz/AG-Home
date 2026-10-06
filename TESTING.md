@@ -101,6 +101,14 @@ The new real-emulator browser scenario starts with an empty products collection 
 
 Production bundle inspection confirms the named seed products and registry are absent. The existing optional administrator import remains server-only and explicit; public browsing never calls it. No production records were modified or deleted. Rules/backend behavior was preserved, and no additional backend deployment is required for the fetching change. Update the static site to publish it.
 
+## Push-to-publish repository preparation
+
+The deployment workflow builds only the repository's default source branch, creates/updates `gh-pages` using the built-in token, and explicitly deploys the same artifact to GitHub Pages. A one-time **Pages Source: GitHub Actions** setting is documented because token-created branch commits do not trigger another Pages build. The workflow also supports manual runs. The branch publisher is pinned to its verified v4.0.0 commit.
+
+Local verification passed **165 unit/worker tests**, production and Functions builds, workflow YAML parsing and the new Pages output checker. The checker verifies nine direct application pages, copied assets, manifest links and the `/AG-Home/` base; it excludes commented markup. Git ignore checks confirm root/Functions local and production environment files are excluded while both examples, rules and `.nojekyll` remain publishable. Node 24 and LF shell/workflow formatting are recorded. Outdated secondary README/deployment instructions were replaced with references to the maintained guide and current repository.
+
+`origin` now points to the user-supplied `https://github.com/AG-Alien-Gamerz/AG-Home.git`. The verified repository-preparation changes are ready for a local commit and the user's push. No push, live Actions run, generated remote branch or Pages deployment has been performed or verified from this workspace; confirm those after the user's push. Firebase backend deployment and Console settings remain separate.
+
 ## Before a real release
 
 The notification/error-report follow-up passes **147 unit/worker tests, nine Functions integration scenarios and seven rules scenarios**, plus production build, backend syntax and worker syntax. The 54-scenario browser suite's final full run passed 53; a remaining inherited 200-pixel mobile menu width was corrected, then all 12 affected Home, public-layout, About-navigation, feedback and new notification/error-report scenarios passed. No known failing browser scenario remains.
