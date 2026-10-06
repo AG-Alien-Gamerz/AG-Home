@@ -1,3 +1,16 @@
+import { LANGUAGES, extraTranslations } from './language-data.js';
+import { interfaceTranslations } from './interface-translations.js';
+import { authTranslations } from './auth-translations.js';
+import { siteCopy } from './site-copy.js';
+import { emailTranslations } from './email-translations.js';
+import { privacyTranslations } from './privacy-translations.js';
+import { loginTranslations } from './login-translations.js';
+import {notificationTranslations} from './notification-translations.js';
+import {mapTranslations} from './map-translations.js';
+import {teamTranslations} from './team-translations.js';
+import {organizationTranslations} from './organization-translations.js';
+import {catalogueTranslations} from './catalogue-translations.js';
+import {characterTranslations} from './character-translations.js';
 // Localization/i18n system for multi-language support
 // Supports English (en) and Urdu (ur)
 
@@ -10,7 +23,7 @@ export const translations = {
         'nav.privacy': 'Privacy',
         'nav.contact': 'Contact Us',
         'nav.controlPanel': 'Control Panel',
-        
+
         'head.contact': 'AG | Contact Us',
         'head.products': 'AG | Products',
         'head.about': 'AG | About Us',
@@ -47,14 +60,14 @@ export const translations = {
         'auth.phoneSignup': 'Sign up with Phone',
         'auth.guest': 'Continue as Guest',
         'auth.guestSignup': 'Continue as Guest',
-        
+
         // Phone Authentication
         'phone.enterNumber': 'Enter your phone number:',
         'phone.sendOtp': 'Send OTP',
         'phone.enterCode': 'Enter the 6-digit code sent to your phone:',
         'phone.verifyLogin': 'Verify & Login',
         'phone.useNumber': 'Use different number',
-        
+
         // Modals & Dialogs
         'modal.settings': 'Settings',
         'modal.phoneLogin': 'Phone Number Login',
@@ -73,7 +86,7 @@ export const translations = {
         'settings.close': 'Close Settings',
         'settings.display': 'Display Settings',
         'settings.showEmail': 'Show email in header',
-        
+
         // Product Page
         'product.noProducts': 'No products in this category',
         'product.loadingProducts': 'Loading products...',
@@ -86,7 +99,7 @@ export const translations = {
         'product.reportReason': 'Reason for reporting',
         'product.reportDetails': 'Details (optional)',
         'product.submitReport': 'Submit Report',
-        
+
         // Product Details Modal
         'details.name': 'Name',
         'details.price': 'Price',
@@ -104,7 +117,7 @@ export const translations = {
         'details.edit': '✏️ Edit Product',
         'details.visit': '🔗 Visit Product',
         'details.download': '📥 Download',
-        
+
         // Contact Page
         'contact.getInTouch': 'Get in Touch',
         'contact.sendMessage': 'Send us a Message',
@@ -115,7 +128,7 @@ export const translations = {
         'contact.phone': '+92-330-XXXXXXX',
         'contact.location': 'Karachi, Pakistan',
         'contact.emailAddr': 'ag.aliengamerz@gmail.com',
-        
+
         // Buttons & Controls
         'btn.logout': 'Logout',
         'btn.submit': 'Submit',
@@ -123,7 +136,7 @@ export const translations = {
         'btn.close': 'Close',
         'btn.yes': 'Yes',
         'btn.no': 'No',
-        
+
         // Common Messages
         'msg.loading': 'Loading...',
         'msg.error': 'Error',
@@ -140,13 +153,13 @@ export const translations = {
         'nav.privacy': 'رازداری',
         'nav.contact': 'ہم سے رابطہ کریں',
         'nav.controlPanel': 'کنٹرول پینل',
-        
+
         'head.contact': 'AG | ہم سے رابطہ کریں',
         'head.privacy': 'AG | رازداری کی پالیسی',
         'head.products': 'AG | مصنوعات',
         'head.about': 'AG | ہمارے بارے میں',
-        'head.home': 'AG | ہوم',    
-        
+        'head.home': 'AG | ہوم',
+
         // Login Page
         'head.welcome': 'خوش آمدید دوبارہ!',
         'login.email': 'ای میل',
@@ -156,7 +169,7 @@ export const translations = {
         'login.signUp': "سائن اپ کریں",
         'login.or': 'یا',
         'login.createAccount': 'اکاؤنٹ بنائیں',
-        
+
         //Home Page
         'body.heading.home': 'AG الیکٹرانکس پرائیویٹ لمیٹڈ میں خوش آمدید',
         'body.description.home': 'آپ کا قابل اعتماد شراکت دار، خاص طور پر سافٹ ویئر میں۔',
@@ -178,14 +191,14 @@ export const translations = {
         'auth.phoneSignup': 'فون کے ساتھ سائن اپ',
         'auth.guest': 'مہمان کے طور پر جاری رکھیں',
         'auth.guestSignup': 'مہمان کے طور پر جاری رکھیں',
-        
+
         // Phone Authentication
         'phone.enterNumber': 'اپنا فون نمبر درج کریں:',
         'phone.sendOtp': 'OTP بھیجیں',
         'phone.enterCode': 'اپنے فون پر بھیجے گئے 6 ہندسے کوڈ درج کریں:',
         'phone.verifyLogin': 'تصدیق اور لاگ ان کریں',
         'phone.useNumber': 'مختلف نمبر استعمال کریں',
-        
+
         // Modals & Dialogs
         'modal.settings': 'ترتیبات',
         'modal.phoneLogin': 'فون نمبر لاگ ان',
@@ -204,7 +217,7 @@ export const translations = {
         'settings.close': 'سیٹنگز بند کریں',
         'settings.display': 'نمائش کی ترتیبات',
         'settings.showEmail': 'ہیڈر میں ای میل دکھائیں',
-        
+
         // Product Page
         'product.noProducts': 'اس زمرے میں کوئی مصنوعات نہیں',
         'product.loadingProducts': 'مصنوعات لوڈ ہو رہی ہیں...',
@@ -217,7 +230,7 @@ export const translations = {
         'product.reportReason': 'اطلاع دینے کی وجہ',
         'product.reportDetails': 'تفصیلات (اختیاری)',
         'product.submitReport': 'اطلاع جمع کریں',
-        
+
         // Product Details Modal
         'details.name': 'نام',
         'details.price': 'قیمت',
@@ -235,7 +248,7 @@ export const translations = {
         'details.edit': '✏️ مصنوع میں ترمیم کریں',
         'details.visit': '🔗 مصنوع دیکھیں',
         'details.download': '📥 ڈاؤن لوڈ کریں',
-        
+
         // Contact Page
         'contact.getInTouch': 'ہم سے رابطہ کریں',
         'contact.sendMessage': 'ہمیں ایک پیغام بھیجیں',
@@ -246,7 +259,7 @@ export const translations = {
         'contact.phone': '+92-330-XXXXXXX',
         'contact.location': 'کراچی، پاکستان',
         'contact.emailAddr': 'ag.aliengamerz@gmail.com',
-        
+
         // Buttons & Controls
         'btn.logout': 'لاگ آؤٹ',
         'btn.submit': 'جمع کریں',
@@ -254,7 +267,7 @@ export const translations = {
         'btn.close': 'بند کریں',
         'btn.yes': 'جی ہاں',
         'btn.no': 'نہیں',
-        
+
         // Common Messages
         'msg.loading': 'لوڈ ہو رہا ہے...',
         'msg.error': 'خرابی',
@@ -2995,98 +3008,86 @@ export const translations = {
     },
 };
 
-// Current language state
-let currentLanguage = localStorage.getItem('language') || 'ur';
-
-/**
- * Get a translated string
- * @param {string} key - Translation key (e.g., 'nav.home')
- * @param {string} lang - Language code (optional, defaults to current language)
- * @returns {string} Translated text or key if not found
- */
-export function t(key, lang = currentLanguage) {
-    // Check if translations for this language exist
-    if (!translations[lang]) {
-        console.warn(`[i18n] Language '${lang}' not found, falling back to 'en'`);
-        lang = 'en';
-    }
-    
-    // Translations are stored as flat keys, so just do a direct lookup
-    const result = translations[lang][key];
-    
-    if (!result) {
-        console.warn(`[i18n] Missing translation for key: '${key}' in language '${lang}'`);
-        return key; // Return key if translation not found
-    }
-    
-    return result;
+// Merge new phrases into the existing dictionaries rather than replacing them.
+for (const language of Object.keys(translations)) {
+    Object.assign(translations[language], extraTranslations[language], interfaceTranslations[language], authTranslations[language], siteCopy[language], emailTranslations[language], privacyTranslations[language], loginTranslations[language],notificationTranslations[language],mapTranslations[language],teamTranslations[language],organizationTranslations[language],catalogueTranslations[language],characterTranslations[language]);
+    translations[language]['settings.themeLightLegacy'] = translations[language]['settings.themeLight'] + ' Legacy';
+    translations[language]['settings.themeDarkLegacy'] = translations[language]['settings.themeDark'] + ' Legacy';
+    const dict = translations[language];
+    for(const key of ['org.invalid','org.hierarchyError'])dict[key]=dict['msg.error'];
+    dict['body.description.about'] = dict['business.description'];
+    dict['body.heading.about'] = dict['nav.about'] + ' · AG Home';
+    dict['body.description.home'] = dict['business.description'];
+    const aliases = {
+        'editor.downloadURL': 'link.downloadSite', 'validation.inactiveLink': 'validation.url',
+        'auth.accountError': 'msg.error', 'auth.popup': 'auth.reauthenticate', 'auth.cancelled': 'btn.cancel',
+        'auth.unavailable': 'msg.error', 'auth.invalidCode': 'phone.enterCode',
+        'link.website': 'platform.website', 'link.windows': 'platform.windows', 'link.linux': 'platform.linux',
+        'link.chromeOS': 'platform.chromeOS', 'link.android': 'platform.android', 'link.apple': 'platform.apple',
+        'report.signIn': 'auth.verificationRequired', 'report.sent': 'msg.success', 'product.retry': 'auth.network',
+        'head.privacy': 'nav.privacy'
+    };
+    for (const [key, source] of Object.entries(aliases)) dict[key] ||= dict[source];
+    for (const id of ['windows', 'linux', 'chromeOS', 'android', 'apple']) dict['link.' + id] = dict['platform.' + id] + ' · ' + dict['details.download'].replace(/📥\s*/, '');
 }
-
-/**
- * Translate all elements with data-i18n attribute
- * @param {string} lang - Language code to apply
- */
-export function applyTranslations(lang = currentLanguage) {
-    currentLanguage = lang;
-    
-    // Translate all elements with data-i18n attribute
-    document.querySelectorAll('[data-i18n]').forEach(element => {
-        const key = element.getAttribute('data-i18n');
-        const translated = t(key, lang);
-        
-        // Check if element is self-closing (like input, button) or container
-        if (element.tagName === 'INPUT' || element.tagName === 'TEXTAREA') {
-            // For inputs, update placeholder or value
-            if (element.hasAttribute('data-i18n-placeholder')) {
-                element.placeholder = translated;
-            } else {
-                element.value = translated;
-            }
-        } else if (element.tagName === 'BUTTON') {
-            // For buttons, update text content
-            element.textContent = translated;
-        } else {
-            // For other elements, update text content
-            element.textContent = translated;
+Object.assign(translations.en, {
+    'link.website':'Website Link', 'link.windows':'Windows Download Link', 'link.linux':'Linux Download Link',
+    'link.chromeOS':'Chrome OS Link', 'link.android':'Android Application Link', 'link.apple':'Apple Application Link',
+    'editor.downloadURL':'Download Website Link'
+});
+Object.assign(translations.ur, {
+    'link.website':'ویب سائٹ کا لنک', 'link.windows':'ونڈوز ڈاؤن لوڈ لنک', 'link.linux':'لینکس ڈاؤن لوڈ لنک',
+    'link.chromeOS':'کروم او ایس لنک', 'link.android':'اینڈرائیڈ ایپلیکیشن لنک', 'link.apple':'ایپل ایپلیکیشن لنک',
+    'editor.downloadURL':'ڈاؤن لوڈ ویب سائٹ کا لنک'
+});
+let currentLanguage = 'ur';
+try { currentLanguage = localStorage.getItem('language') || 'ur'; } catch {}
+if (!LANGUAGES[currentLanguage]) currentLanguage = 'ur';
+export function t(key, language = currentLanguage) {
+    return translations[language]?.[key] || translations.en[key] || key;
+}
+export function applyTranslations(language = currentLanguage, root = document) {
+    currentLanguage = LANGUAGES[language] ? language : 'en';
+    for (const element of root.querySelectorAll('[data-i18n], [data-i18n-placeholder], [data-i18n-aria], [data-i18n-title]')) {
+        if (element.dataset.i18nPlaceholder) element.placeholder = t(element.dataset.i18nPlaceholder);
+        if (element.dataset.i18nAria) element.setAttribute('aria-label', t(element.dataset.i18nAria));
+        if (element.dataset.i18nTitle) element.title = t(element.dataset.i18nTitle);
+        const key = element.dataset.i18n;
+        if (!key) continue;
+        if (['INPUT', 'TEXTAREA'].includes(element.tagName)) element.placeholder = t(key);
+        else if (element.children.length) {
+            // Preserve checkboxes, icons and other controls inside translated labels.
+            let node = [...element.childNodes].find(n => n.nodeType === Node.TEXT_NODE && n.textContent.trim());
+            if (node) node.textContent = ' ' + t(key) + ' ';
+            else if (!element.querySelector('[data-i18n]')) element.append(document.createTextNode(' ' + t(key)));
+        } else element.textContent = t(key);
+    }
+    document.documentElement.lang = LANGUAGES[currentLanguage][2];
+    document.documentElement.dir = LANGUAGES[currentLanguage][1];
+    document.body.dataset.language = currentLanguage;
+    document.body.style.direction = LANGUAGES[currentLanguage][1];
+}
+let initialized = false;
+export function initLocalization() {
+    applyTranslations();
+    if (initialized) return;
+    initialized = true;
+    window.addEventListener('languageChanged', event => applyTranslations(event.detail.language));
+    // Translate newly inserted administrative, modal and loading content.
+    const observer = new MutationObserver(records => {
+        for (const record of records) for (const node of record.addedNodes) {
+            if (node.nodeType !== 1) continue;
+            if (node.matches('[data-i18n]') && !node.children.length) node.textContent = t(node.dataset.i18n);
+            if (node.querySelector('[data-i18n]')) applyTranslations(currentLanguage, node);
         }
     });
-    
-    // Apply RTL for Urdu
-    if (lang === 'ur') {
-        document.documentElement.dir = 'rtl';
-        document.body.style.direction = 'rtl';
-    } else {
-        document.documentElement.dir = 'ltr';
-        document.body.style.direction = 'ltr';
-    }
+    observer.observe(document.body, { childList: true, subtree: true });
 }
-
-/**
- * Initialize localization system
- */
-export function initLocalization() {
-    // Apply initial translations
-    applyTranslations(currentLanguage);
-    
-    // Listen for language changes
-    window.addEventListener('languageChanged', (event) => {
-        applyTranslations(event.detail.language);
-    });
+export function setCurrentLanguage(language) {
+    currentLanguage = LANGUAGES[language] ? language : 'en';
+    try { localStorage.setItem('language', currentLanguage); } catch {}
+    applyTranslations();
+    window.dispatchEvent(new CustomEvent('languageChanged', { detail: { language: currentLanguage } }));
 }
-
-/**
- * Set current language
- * @param {string} lang - Language code
- */
-export function setCurrentLanguage(lang) {
-    currentLanguage = lang;
-    localStorage.setItem('language', lang);
-}
-
-/**
- * Get current language
- * @returns {string} Current language code
- */
-export function getCurrentLanguage() {
-    return currentLanguage;
-}
+export function getCurrentLanguage() { return currentLanguage; }
+export { LANGUAGES };

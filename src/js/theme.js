@@ -1,23 +1,27 @@
+import { setCurrentLanguage } from './localization.js';
+import { normalizeTheme, themeScheme } from './theme-model.js';
 // Theme utilities shared across pages (page-specific scripts can import these)
 // Exports: setTheme(theme), initTheme(), updateActiveTheme(theme)
 
 export function setTheme(theme) {
+    theme = normalizeTheme(theme);
     try {
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = themeScheme(theme);
         document.body.setAttribute('data-theme', theme);
         localStorage.setItem('theme', theme);
 
         const themeButtons = document.querySelectorAll('.theme-btn');
         if (themeButtons && themeButtons.length) {
-            themeButtons.forEach(btn =>
-                btn.classList.toggle('active', btn.dataset.theme === theme)
-            );
+            themeButtons.forEach(btn => {
+                btn.classList.toggle('active', btn.dataset.theme === theme);
+                btn.setAttribute('aria-pressed', String(btn.dataset.theme === theme));
+            });
         }
-
-        updateFogColor(theme);
 
         const header = document.querySelector('header');
         if (header) {
-            header.style.transition = 'all 0.3s ease';
+            header.style.transition = 'background-color .2s ease, color .2s ease, border-color .2s ease';
         }
 
         const dynamicText = document.getElementById('dynamicText');
@@ -29,23 +33,10 @@ export function setTheme(theme) {
     }
 }
 
-function updateFogColor(theme) {
-    try {
-        const fogElements = document.querySelectorAll('.fog');
-        if (!fogElements) return;
-        fogElements.forEach(fog => {
-            fog.style.background = `linear-gradient(90deg, \
-            rgba(0, 255, 255, 0) 0%,\n            var(--fog-color) 50%,\n            rgba(0, 255, 255, 0) 100%)`;
-        });
-    } catch (e) {
-        console.warn('[theme] updateFogColor error', e);
-    }
-}
-
 export function updateActiveTheme(theme) {
     const themeButtons = document.querySelectorAll('.theme-btn');
     if (!themeButtons) return;
-    themeButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.theme === theme));
+    themeButtons.forEach(btn => { btn.classList.toggle('active', btn.dataset.theme === theme); btn.setAttribute('aria-pressed', String(btn.dataset.theme === theme)); });
 }
 
 export function setViewMode(mode) {
@@ -77,14 +68,17 @@ export function updateActiveViewMode(mode) {
     viewModeButtons.forEach(btn => btn.classList.toggle('active', btn.dataset.view === mode));
 }
 
+let themeInitialized = false;
 export function initTheme() {
+    if (themeInitialized) return; themeInitialized = true;
     // Attach click handlers to theme buttons when present and apply initial theme
     const themeButtons = document.querySelectorAll('.theme-btn');
     if (themeButtons && themeButtons.length) {
         themeButtons.forEach(btn => btn.addEventListener('click', () => setTheme(btn.dataset.theme)));
     }
     // Apply stored theme or default
-    setTheme(localStorage.getItem('theme') || 'dark');
+    setTheme(localStorage.getItem('theme') || document.documentElement.dataset.theme || 'light');
+    window.addEventListener('storage', event => { if (event.key === 'theme') setTheme(event.newValue); });
 
     // Attach click handlers to view mode buttons
     const viewModeButtons = document.querySelectorAll('.view-mode-btn');
@@ -103,34 +97,7 @@ export function initTheme() {
     setLanguage(localStorage.getItem('language') || 'ur');
 }
 
-export function setLanguage(lang) {
-    try {
-        document.documentElement.lang = lang;
-        document.body.setAttribute('data-language', lang);
-        localStorage.setItem('language', lang);
-
-        const languageButtons = document.querySelectorAll('.language-btn');
-        if (languageButtons && languageButtons.length) {
-            languageButtons.forEach(btn =>
-                btn.classList.toggle('active', btn.dataset.language === lang)
-            );
-        }
-
-        // Apply text direction for RTL languages
-        if (lang === 'ur') {
-            document.documentElement.dir = 'rtl';
-            document.body.style.direction = 'rtl';
-        } else {
-            document.documentElement.dir = 'ltr';
-            document.body.style.direction = 'ltr';
-        }
-
-        // Dispatch custom event for language change
-        window.dispatchEvent(new CustomEvent('languageChanged', { detail: { language: lang } }));
-    } catch (e) {
-        console.warn('[theme] setLanguage error', e);
-    }
-}
+export function setLanguage(lang) { setCurrentLanguage(lang); updateActiveLanguage(lang); }
 
 export function updateActiveLanguage(lang) {
     const languageButtons = document.querySelectorAll('.language-btn');

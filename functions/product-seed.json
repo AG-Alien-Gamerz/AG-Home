@@ -1,0 +1,45 @@
+{
+  "ownerIds": ["muhammad-hamza-sabir"],
+  "groups": [
+    {
+      "platformIds": ["windows"],
+      "version": "v0.0.1",
+      "downloadSite": {"enabled":true,"url":"","status":"pending"},
+      "developmentCategories": ["software", "uiux", "testingDeployment"],
+      "products": [
+        {"name":"AG Capture"},
+        {"name":"AG Vault"},
+        {"name":"AG Road Sense"},
+        {"name":"AG Beacon"},
+        {"name":"AG Stream Deck"},
+        {"name":"AG Hyper Disk"},
+        {"name":"AG Ports"},
+        {"name":"AG Env Dock"},
+        {"name":"AG TimeVault"},
+        {"name":"AG Relay"},
+        {"name":"AG CraftNode"},
+        {"name":"AG Cortex"},
+        {"name":"AG Price Scope"},
+        {"name":"AG Py Forge"},
+        {"name":"AG Forge"},
+        {"name":"AG Control Center"},
+        {"name":"AG Slate"},
+        {"name":"AG Fetch"},
+        {"name":"AG Calendar"},
+        {"name":"AGNO"},
+        {"name":"AG Nexus","platformIds":["windows","android"],"developmentCategories":["frontend","software","android","uiux","security","testingDeployment"]}
+      ]
+    },
+    {
+      "platformIds": ["website"],
+      "developmentCategories": ["frontend", "uiux", "testingDeployment"],
+      "products": [
+        {"name":"AG Horizons"},
+        {"name":"AG Password Manager"},
+        {"name":"AG Islam"},
+        {"name":"AG Atmos"},
+        {"name":"AG Home"}
+      ]
+    }
+  ]
+}

@@ -1,108 +1,24 @@
-import { auth, functions } from './firebase-config.js';
-import { getFirestore, collection, addDoc, serverTimestamp } from 'firebase/firestore';
-import { httpsCallable } from 'firebase/functions';
-import { initTheme } from './theme.js';
-
-const db = getFirestore();
-
-document.addEventListener('DOMContentLoaded', () => {
-    // Initialize shared theme behavior for this page
-    try { initTheme(); } catch (e) { console.warn('[contact] initTheme failed', e); }
-
-    const contactForm = document.getElementById('contactForm');
-    const submitBtn = document.querySelector('.submit-btn');
-
-    if (!contactForm) return;
-
-    contactForm.addEventListener('submit', async (e) => {
-        e.preventDefault();
-        // Disable submit button while processing
-        submitBtn.disabled = true;
-        submitBtn.textContent = 'Sending...';
-
-        const name = document.getElementById('name').value.trim();
-        const email = document.getElementById('email').value.trim();
-        const message = document.getElementById('message').value.trim();
-
+import { auth, db } from './firebase-config.js';
+import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { t } from './localization.js';
+import { validEmail, canUseSensitiveFeatures } from './auth-validation.js';
+import { toast, busy } from './ui.js';
+import {initContactMap} from './contact-map.js';
+import 'leaflet/dist/leaflet.css';
+initContactMap();
+const form = document.getElementById('contactForm');
+form?.addEventListener('submit', event => {
+    event.preventDefault();
+    busy(event.submitter, async () => {
+        await auth.authStateReady();
+        if (!canUseSensitiveFeatures(auth.currentUser)) { toast(t('auth.verificationRequired'), 'error'); return; }
+        const name = document.getElementById('name').value.trim(), email = document.getElementById('email').value.trim(), message = document.getElementById('message').value.trim();
+        if (!name || !message) { toast(t('validation.required'), 'error'); return; }
+        if (!validEmail(email)) { toast(t('validation.email'), 'error'); return; }
         try {
-            // Validate inputs
-            if (!name || !email || !message) {
-                throw new Error('Please fill in all fields');
-            }
-
-            // Create message object
-            const messageData = {
-                name,
-                email,
-                message,
-                timestamp: serverTimestamp(),
-                userId: auth.currentUser?.uid || 'anonymous',
-                status: 'unread',
-                archived: false
-            };
-
-            // Add to Firestore
-            const docRef = await addDoc(collection(db, 'messages'), messageData);
-
-            // Send notification with better error handling
-            try {
-                const notifyAdmin = httpsCallable(functions, 'notifyAdmin');
-                const result = await notifyAdmin({
-                    messageId: docRef.id,
-                    sender: name,
-                    preview: message.substring(0, 100)
-                });
-
-                if (!result.data.success) {
-                    console.warn('Notification not sent:', result.data.error);
-                }
-            } catch (notifyError) {
-                console.error('Notification error:', notifyError);
-                // Continue since message is saved
-            }
-
-            // Success
-            alert('Message sent successfully!');
-            contactForm.reset();
-
-        } catch (error) {
-            console.error('Error details:', error);
-            alert(error.message || 'Failed to send message. Please try again.');
-        } finally {
-            // Re-enable submit button
-            submitBtn.disabled = false;
-            submitBtn.textContent = 'Send Message';
-        }
-    });
-
-    // Add real-time validation
-    const inputs = contactForm.querySelectorAll('input, textarea');
-    inputs.forEach(input => {
-        input.addEventListener('input', () => {
-            input.setCustomValidity('');
-            input.checkValidity();
-        });
-
-        input.addEventListener('invalid', () => {
-            if (input.value.trim() === '') {
-                input.setCustomValidity('This field is required');
-            }
-        });
-    });
-
-});
-
-// Add real-time validation
-const inputs = contactForm.querySelectorAll('input, textarea');
-inputs.forEach(input => {
-    input.addEventListener('input', () => {
-        input.setCustomValidity('');
-        input.checkValidity();
-    });
-
-    input.addEventListener('invalid', () => {
-        if (input.value.trim() === '') {
-            input.setCustomValidity('This field is required');
-        }
+            await addDoc(collection(db, 'messages'), { name, email, message, timestamp: serverTimestamp(), userId: auth.currentUser.uid, status: 'unread', archived: false });
+            // The onNewMessage backend trigger delivers notifications once.
+            toast(t('msg.success')); form.reset();
+        } catch { toast(t('msg.error'), 'error'); }
     });
 });

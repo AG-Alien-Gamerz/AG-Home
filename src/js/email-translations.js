@@ -1,0 +1,26 @@
+const copy = {
+    en: ['Can’t find the email?', 'Email may arrive in Spam or Junk. Also check Promotions, Updates or Other tabs, and allow a few minutes.'],
+    ur: ['ای میل نہیں ملی؟', 'ای میل اسپیم یا جنک میں آ سکتی ہے۔ پروموشنز، اپ ڈیٹس یا دیگر ٹیب بھی دیکھیں اور چند منٹ انتظار کریں۔'],
+    ur_roman: ['Email nahi mili?', 'Email Spam ya Junk mein aa sakti hai. Promotions, Updates ya Other tabs bhi dekhein aur chand minute intezar karein.'],
+    ar: ['لم تجد الرسالة؟', 'قد تصل الرسالة إلى البريد العشوائي أو غير المرغوب فيه. تحقق أيضًا من تبويبات العروض والتحديثات وغيرها، وانتظر بضع دقائق.'],
+    tr: ['E-postayı bulamıyor musunuz?', 'E-posta Spam veya Gereksiz klasörüne düşebilir. Tanıtımlar, Güncellemeler veya Diğer sekmelerini de kontrol edin ve birkaç dakika bekleyin.'],
+    ja: ['メールが見つかりませんか？', '迷惑メールフォルダに届くことがあります。プロモーション、更新、その他のタブも確認し、数分お待ちください。'],
+    zh: ['找不到邮件？', '邮件可能进入垃圾邮件文件夹。也请检查推广、更新或其他标签页，并等待几分钟。'],
+    pa: ['ای میل نئیں لبھی؟', 'ای میل سپیم یا جنک وچ آ سکدی اے۔ پروموشنز، اپ ڈیٹس یا ہور ٹیب وی ویکھو تے کجھ منٹ اُڈیکو۔'],
+    ps: ['برېښنالیک مو ونه موند؟', 'برېښنالیک ښايي په سپیم یا جنک کې وي. د اعلانونو، تازه معلوماتو یا نورو ټبونه هم وګورئ او څو دقیقې انتظار وکړئ.'],
+    bal: ['ای میل دست نہ کپت؟', 'ای میل سپیم یا جنک ءَ بیت کنت۔ پروموشنز، اپ ڈیٹس یا دگہ ٹیب ھم بچاریت ءُ چند منٹ صبر بکنیت۔'],
+    fr: ['Vous ne trouvez pas l’e-mail ?', 'Il peut arriver dans les spams ou courriers indésirables. Vérifiez aussi Promotions, Mises à jour ou Autres, et patientez quelques minutes.'],
+    es: ['¿No encuentras el correo?', 'Puede llegar a Spam o Correo no deseado. Revisa también Promociones, Actualizaciones u Otros y espera unos minutos.'],
+    de: ['Keine E-Mail gefunden?', 'Sie kann im Spam- oder Junk-Ordner landen. Prüfe auch Werbung, Updates oder Sonstiges und warte einige Minuten.'],
+    sd: ['اي ميل نه ملي؟', 'اي ميل اسپيم يا جنڪ ۾ اچي سگهي ٿي. پروموشنز، اپڊيٽس يا ٻيا ٽيب پڻ ڏسو ۽ ڪجهه منٽ انتظار ڪريو.'],
+    hnd: ['ای میل نئیں ملی؟', 'ای میل سپیم یا جنک وچ آ سکدی اے۔ پروموشنز، اپ ڈیٹس یا ہور ٹیب وی ویکھو تے کجھ منٹ اُڈیکو۔'],
+    skr: ['ای میل کائنی ملی؟', 'ای میل سپیم یا جنک وچ آ سڳدی ہے۔ پروموشنز، اپ ڈیٹس یا ٻئے ٹیب وی ݙیکھو تے کجھ منٹ اُڈیکو۔'],
+    hi: ['ईमेल नहीं मिला?', 'ईमेल स्पैम या जंक में आ सकता है। प्रचार, अपडेट या अन्य टैब भी देखें और कुछ मिनट प्रतीक्षा करें।'],
+    bn: ['ইমেল খুঁজে পাচ্ছেন না?', 'ইমেল স্প্যাম বা জাঙ্কে আসতে পারে। প্রচার, আপডেট বা অন্যান্য ট্যাবও দেখুন এবং কয়েক মিনিট অপেক্ষা করুন।'],
+    ru: ['Не нашли письмо?', 'Оно может попасть в спам. Проверьте также вкладки «Промоакции», «Обновления» или «Другие» и подождите несколько минут.'],
+    it: ['Non trovi l’e-mail?', 'Può finire nello spam o nella posta indesiderata. Controlla anche Promozioni, Aggiornamenti o Altro e attendi qualche minuto.'],
+    pt: ['Não encontra o e-mail?', 'Pode chegar à pasta de spam ou lixo eletrônico. Verifique também Promoções, Atualizações ou Outros e aguarde alguns minutos.'],
+    ko: ['이메일을 찾을 수 없나요?', '스팸 또는 정크 폴더에 도착할 수 있습니다. 프로모션, 업데이트 또는 기타 탭도 확인하고 몇 분 기다려 주세요.'],
+    id: ['Tidak menemukan email?', 'Email mungkin masuk ke Spam atau Sampah. Periksa juga tab Promosi, Pembaruan atau Lainnya, dan tunggu beberapa menit.']
+};
+export const emailTranslations = Object.fromEntries(Object.entries(copy).map(([language, [title, body]]) => [language, { 'email.tipTitle': title, 'email.tipBody': body }]));

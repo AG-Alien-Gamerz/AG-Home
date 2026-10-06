@@ -1,0 +1,71 @@
+/* Sculpted code-native figures share one lightweight interaction system. */
+.ag-character{position:fixed;z-index:90;width:92px;height:134px;border:0!important;background:none!important;box-shadow:none!important;padding:0!important;touch-action:none;cursor:grab;perspective:400px;transform:none!important;isolation:isolate}.ag-character span,.ag-character i{position:absolute;display:block;pointer-events:none}.robot-head{left:12px;top:14px;width:68px;height:53px;border-radius:22px;background:linear-gradient(130deg,#f4fafc 20%,#bdcfdb 70%,#7195a9);box-shadow:inset 2px 3px 3px #fff,3px 5px 7px #052c3a30;z-index:4;transform:rotate(-3deg);transition:transform .25s}.robot-face{inset:9px 7px 10px;background:linear-gradient(145deg,#174554,#0a2535);border:2px solid #82a6b8;border-radius:15px;box-shadow:inset 2px 2px 6px #0008}.robot-eye{top:9px;width:8px;height:11px;background:#88f3dd;border-radius:50%;box-shadow:0 0 5px #88f3dd80;transition:height .12s,transform .12s}.robot-eye:first-child{left:10px}.robot-eye:nth-child(2){right:10px}.robot-mouth{width:11px;height:3px;background:#88f3dd;border-radius:50%;bottom:5px;left:19px}.robot-antenna{left:43px;top:3px;width:5px;height:16px;background:#7699ab;border-radius:4px}.robot-antenna:before{content:'';position:absolute;left:-3px;top:0;width:11px;height:11px;background:#1caa98;border:2px solid #a3ede5;border-radius:50%;box-shadow:0 0 8px #27bea34d}.robot-neck{left:37px;top:61px;width:18px;height:16px;background:#678699}.robot-body{left:23px;top:72px;width:47px;height:41px;border-radius:15px 15px 20px 20px;background:linear-gradient(125deg,#eff7fa,#8baaba);box-shadow:inset 2px 2px 2px #fff,3px 4px 5px #092a3440;z-index:3}.robot-heart{left:16px;top:12px;width:15px;height:12px;border-radius:5px;background:#168e7f;border:2px solid #7fe1d2;box-shadow:0 0 10px #087d7440}.robot-arm{top:77px;width:14px;height:31px;border-radius:8px;background:linear-gradient(90deg,#e4f0f6,#7d9daf);box-shadow:2px 2px 3px #092a3430;transform-origin:top}.robot-arm.left{left:10px;transform:rotate(15deg)}.robot-arm.right{right:10px;transform:rotate(-15deg)}.robot-leg{top:107px;width:18px;height:21px;border-radius:5px 5px 8px 8px;background:linear-gradient(110deg,#d3e4ec,#769bae);z-index:2}.robot-leg.left{left:26px}.robot-leg.right{right:26px}.robot-shadow{width:65px;height:8px;border-radius:50%;left:14px;bottom:0;background:#0b30422a;filter:blur(3px)}.robot-zzz{right:-8px;top:7px;font:bold 13px monospace;color:var(--accent);opacity:0}.ag-character[data-gender=female] .robot-head{border-radius:26px 26px 18px 18px}.ag-character[data-gender=female] .robot-antenna:before{border-radius:3px;transform:rotate(45deg);background:#8b65ad}.ag-character[data-gender=female] .robot-body{background:linear-gradient(130deg,#faf0fa,#af9ac3)}.ag-character[data-gender=female] .robot-heart{background:#8b65ad;border-color:#e2bfec}.ag-character.eyes-closed .robot-eye{height:2px!important;top:15px!important;border-radius:0 0 50% 50%;transform:none!important}.ag-character[data-state=awake] .robot-head,.ag-character[data-state=idle] .robot-head{animation:robot-breathe 4s ease-in-out infinite}.ag-character.picked-up .robot-head{transform:rotate(8deg)}.ag-character.picked-up .robot-leg{transform:rotate(12deg)}.ag-character.picked-up{cursor:grabbing}.ag-character[data-state=happy] .robot-head,.ag-character[data-state=celebrate] .robot-head{animation:robot-nod .5s ease-in-out 3}.ag-character[data-state=celebrate] .robot-arm.right{transform:rotate(-135deg)}.ag-character[data-state=happy] .robot-mouth{height:7px;border-radius:0 0 8px 8px;background:none;border-bottom:2px solid #88f3dd}.ag-character[data-state=confused] .robot-head{transform:rotate(12deg)}.ag-character[data-state=confused] .robot-eye:nth-child(2){height:4px}.ag-character[data-state=waiting] .robot-heart{animation:robot-pulse .8s ease-in-out infinite}.ag-character[data-state=reading] .robot-head{transform:rotate(-12deg)}.ag-character[data-state=sit] .robot-body,.ag-character[data-state=yawn] .robot-body,.ag-character[data-state=sleepy] .robot-body,.ag-character[data-state=sleep] .robot-body{top:80px}.ag-character[data-state=sit] .robot-leg,.ag-character[data-state=yawn] .robot-leg,.ag-character[data-state=sleepy] .robot-leg,.ag-character[data-state=sleep] .robot-leg{height:12px;transform:rotate(-15deg);top:117px}.ag-character[data-state=yawn] .robot-mouth{height:9px;width:8px;border-radius:50%;bottom:3px}.ag-character[data-state=sleepy] .robot-eye{height:4px;top:14px}.ag-character[data-state=sleep] .robot-eye{height:2px;top:15px}.ag-character[data-state=sleep] .robot-head{transform:rotate(10deg) translateY(5px)}.ag-character[data-state=sleep] .robot-zzz{opacity:1;animation:robot-sleep 3s ease-out infinite}.ag-character.modal-obscured{visibility:hidden}.robot-glass{position:fixed;z-index:89;width:52px;height:65px;border:0;background:none;touch-action:none;cursor:grab;pointer-events:none;opacity:0;transition:opacity .25s}.robot-glass span{display:block;width:35px;height:35px;border:5px solid #779eb0;border-radius:50%;background:linear-gradient(130deg,#aee2ed77,#ffffff11);box-shadow:inset 1px 1px 3px #fff6,2px 3px 5px #092a3430}.robot-glass span:after{content:'';position:absolute;left:32px;top:30px;width:9px;height:29px;border-radius:4px;transform:rotate(-35deg);background:#425d70}.robot-glass.glass-active{opacity:1}.robot-glass[data-mode=fixed]{pointer-events:auto;opacity:1}.robot-glass:not(.glass-active)[data-mode=fixed]{opacity:.45}.robot-glass.picked-up{cursor:grabbing}.ag-character:hover .robot-shadow{background:#087d7438}@keyframes robot-breathe{50%{transform:translateY(-2px) rotate(2deg)}}@keyframes robot-nod{50%{transform:translateY(-5px) rotate(5deg)}}@keyframes robot-pulse{50%{opacity:.3}}@keyframes robot-sleep{0%{transform:translateY(4px);opacity:0}50%{opacity:1}100%{transform:translateY(-12px);opacity:0}}
+@media(max-width:600px){.ag-character{transform:scale(.75)!important;transform-origin:bottom right;z-index:70}.robot-glass{transform:scale(.8);transform-origin:top left}}
+@media(prefers-reduced-motion:reduce){.ag-character *{animation:none!important;transition:none!important}.robot-glass{transition:none}.robot-zzz{animation:none!important}}
+
+.character-figure {inset:0;}
+.ag-character:not([data-appearance=robot]) {
+    --character-skin:#d9a77f;
+    --character-hair:#27252a;
+    --character-clothes:#248f82;
+    --character-trousers:#f1e9d9;
+}
+.ag-character:not([data-appearance=robot]) .robot-head {
+    top:9px;left:14px;width:64px;height:62px;border-radius:28px 28px 25px 25px;
+    background:linear-gradient(125deg,#efcaa7,var(--character-skin));
+    box-shadow:inset 2px 1px 3px #ffffff65,3px 5px 7px #052c3a30;
+}
+.ag-character:not([data-appearance=robot]) .robot-face {
+    inset:15px 7px 7px;border:0;border-radius:18px;background:transparent;box-shadow:none;z-index:2;
+}
+.ag-character:not([data-appearance=robot]) .robot-face::after {
+    content:'';position:absolute;top:18px;left:23px;width:5px;height:6px;
+    border-radius:50%;background:#b87e5c55;border-bottom:1px solid #a36e5355;
+}
+.ag-character:not([data-appearance=robot]) .robot-eye {
+    top:10px;width:7px;height:9px;background:var(--character-hair);box-shadow:none;
+}
+.ag-character:not([data-appearance=robot]) .robot-eye::after {
+    content:'';position:absolute;width:2px;height:3px;background:#fff;border-radius:50%;top:1px;left:1px;
+}
+.ag-character:not([data-appearance=robot]) .robot-mouth {
+    left:20px;bottom:4px;width:11px;height:3px;background:#965f58;
+}
+.human-hair {top:-3px;left:-1px;width:66px;height:25px;z-index:3;background:linear-gradient(120deg,#484047,var(--character-hair));border-radius:30px 30px 8px 8px;box-shadow:inset 3px 2px 3px #ffffff15;}
+.human-hair::after {content:'';position:absolute;left:6px;top:14px;width:31px;height:17px;background:var(--character-hair);border-radius:0 0 90% 0;transform:rotate(-12deg);}
+.human-ear {top:32px;width:7px;height:12px;border-radius:50%;background:var(--character-skin);z-index:0;}
+.human-ear.left {left:-3px;}.human-ear.right {right:-3px;}
+.human-hair-back {display:none!important;}
+.ag-character:not([data-appearance=robot]) .robot-neck {left:38px;top:66px;width:16px;height:15px;background:var(--character-skin);border-radius:4px;}
+.ag-character:not([data-appearance=robot]) .robot-body {left:25px;top:77px;width:42px;height:37px;border-radius:11px 11px 8px 8px;background:linear-gradient(115deg,#ffffff30,transparent 50%),var(--character-clothes);box-shadow:inset 1px 1px 2px #ffffff40,3px 4px 5px #092a3440;}
+.human-collar {left:12px;top:0;width:18px;height:9px;background:var(--character-clothes);border:2px solid #fff9;border-top:0;border-radius:0 0 7px 7px;}
+.ag-character:not([data-appearance=robot]) .robot-heart {left:20px;top:12px;width:2px;height:15px;border:0;border-radius:0;background:repeating-linear-gradient(to bottom,#f5e9d8 0 2px,transparent 2px 5px);box-shadow:none;}
+.ag-character:not([data-appearance=robot]) .robot-arm {top:80px;width:13px;height:31px;background:linear-gradient(to bottom,var(--character-clothes) 0 74%,var(--character-skin) 75%);}
+.ag-character:not([data-appearance=robot]) .robot-arm.left {left:14px;}.ag-character:not([data-appearance=robot]) .robot-arm.right {right:14px;}
+.ag-character:not([data-appearance=robot]) .robot-leg {top:110px;width:17px;height:20px;background:linear-gradient(to bottom,var(--character-trousers) 0 70%,#35343d 72%);border-radius:3px 3px 6px 6px;}
+.human-dupatta {display:none!important;}
+.ag-character[data-appearance=pakistani-boy] .robot-body {background:linear-gradient(90deg,#1f3440 0 24%,var(--character-clothes) 25% 74%,#1f3440 75%);}
+.ag-character[data-appearance=pakistani-girl] {--character-clothes:#9465a5;--character-trousers:#eee1eb;}
+.ag-character[data-appearance=pakistani-girl] .human-hair-back,.ag-character[data-appearance=anime-girl] .human-hair-back {display:block!important;left:13px;top:15px;width:66px;height:72px;background:linear-gradient(120deg,#484047,var(--character-hair));border-radius:27px 27px 17px 17px;z-index:0;}
+.ag-character[data-appearance=pakistani-girl] .human-dupatta {display:block!important;left:17px;top:73px;width:15px;height:47px;z-index:5;transform:rotate(8deg);border-radius:7px 7px 3px 3px;background:linear-gradient(90deg,#dab8df,#ae82bd);border-inline-end:2px solid #eee1eb;}
+.ag-character[data-appearance=pakistani-girl] .robot-body {height:42px;width:46px;left:23px;border-radius:10px 10px 5px 5px;}
+.ag-character[data-appearance^=anime-] {--character-skin:#efc4af;--character-hair:#263d5c;--character-clothes:#4d79b9;--character-trousers:#33425b;}
+.ag-character[data-appearance^=anime-] .robot-head {left:11px;top:7px;width:70px;height:64px;border-radius:28px 28px 32px 32px;background:linear-gradient(125deg,#ffe7d4,var(--character-skin));}
+.ag-character[data-appearance^=anime-] .human-hair {width:72px;height:27px;background:linear-gradient(115deg,#6483a6,var(--character-hair));border-radius:30px 30px 6px 6px;}
+.ag-character[data-appearance^=anime-] .human-hair::after {height:22px;width:39px;left:9px;clip-path:polygon(0 0,100% 0,90% 60%,65% 100%,60% 50%,30% 90%,35% 25%);border-radius:0;}
+.ag-character[data-appearance^=anime-] .robot-eye {top:7px;width:12px;height:15px;background:radial-gradient(ellipse at 50% 58%,#112b41 0 30%,#518eac 32% 52%,white 55%);border-top:2px solid var(--character-hair);border-radius:45% 45% 50% 50%;}
+.ag-character[data-appearance^=anime-] .robot-eye::after {top:3px;left:3px;width:3px;height:4px;}
+.ag-character[data-appearance=anime-girl] {--character-hair:#714454;--character-clothes:#b77595;--character-trousers:#4d3858;}
+.ag-character[data-appearance=anime-girl] .human-hair,.ag-character[data-appearance=anime-girl] .human-hair-back {background:linear-gradient(115deg,#bc8895,var(--character-hair));}
+.ag-character[data-appearance=anime-girl] .robot-body {width:46px;left:23px;height:43px;border-radius:10px 10px 13px 13px;}
+.ag-character:not([data-appearance=robot]).eyes-closed .robot-eye,.ag-character:not([data-appearance=robot])[data-state=sleep] .robot-eye {height:2px!important;top:15px!important;border:0;background:var(--character-hair);box-shadow:none;}
+.ag-character:not([data-appearance=robot]).eyes-closed .robot-eye::after,.ag-character:not([data-appearance=robot])[data-state=sleep] .robot-eye::after {display:none;}
+.ag-character:not([data-appearance=robot]):is([data-state=happy],[data-state=celebrate]) .robot-mouth {height:7px;border-radius:0 0 8px 8px;background:none;border-bottom:2px solid #965f58;}
+.ag-character:not([data-appearance=robot])[data-state=yawn] .robot-mouth {height:10px;width:8px;left:22px;bottom:3px;border-radius:50%;background:#814e49;}
+.ag-character:not([data-appearance=robot]):is([data-state=sit],[data-state=yawn],[data-state=sleepy],[data-state=sleep]) .robot-body {top:84px;}
+.ag-character:not([data-appearance=robot]):is([data-state=sit],[data-state=yawn],[data-state=sleepy],[data-state=sleep]) .robot-leg {height:12px;top:118px;transform:rotate(-15deg);}
+.ag-character:not([data-appearance=robot])[data-state=sleepy] .robot-eye {height:4px;top:14px;}
+.character-preview {display:flex;align-items:center;gap:20px;min-height:142px;margin-block:14px;padding:12px;border:1px solid var(--line);border-radius:12px;background:var(--surface-alt);}
+.character-preview .ag-character {position:relative!important;inset:auto!important;flex:0 0 92px;transform:none!important;cursor:default;pointer-events:none;}
+.character-preview p {margin:0;font-size:.95rem;color:var(--ink);text-align:start;}
+.character-gender-row[hidden] {display:none!important;}

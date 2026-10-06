@@ -1,9 +1,22 @@
 import { auth, functions } from './firebase-config.js';
 import { httpsCallable } from 'firebase/functions';
 import { getFirestore, collection, doc, getDoc, setDoc, addDoc, query, where, getDocs, updateDoc, deleteDoc, orderBy, onSnapshot } from 'firebase/firestore';
-import { setupFCM } from './fcm-manager.js';
+import {initNotifications,mountNotificationSettings} from './notifications.js';
 import { onAuthStateChanged } from 'firebase/auth';
 import roleManager, { ROLES, OWNER_EMAILS } from './role-manager.js';
+import { mountPlatformEditor, fillPlatformEditor, readPlatformEditor } from './product-editor.js';
+import { prepareProductForm } from './product-form-ui.js';
+import { mountProductRelationships, fillProductRelationships, readProductRelationships } from './product-relationships.js';
+import { initializeCatalogue } from './product-data.js';
+import { filterMessages, messageCounts, messageStatus } from './feedback-model.js';
+import { safeURL, productActions, normalizeProduct, PLATFORMS } from './product-model.js';
+import { initLocalization, t } from './localization.js';
+import { initTheme } from './theme.js';
+import { logout, pageURL, rejectUnverifiedSession } from './auth-service.js';
+import { initCharacter } from './character.js';
+import { initAdminLocalization } from './admin-localization.js';
+import { initModals, busy, initValidation, toast } from './ui.js';
+import {initTeamManagement} from './team-admin.js';
 
 const db = getFirestore();
 
@@ -18,18 +31,8 @@ function convertPKRToUSD(priceInPKR) {
 
 // Helper function to format price display
 function formatPrice(priceInPKR) {
-    // Ensure we have a number
-    const price = parseFloat(priceInPKR) || 0;
-    
-    // If price is 0 or less, show FREE
-    if (price <= 0) {
-        return 'FREE';
-    }
-    
-    // Otherwise show PKR with USD conversion
-    const roundedPrice = Math.round(price);
-    const usdPrice = (price / PKR_TO_USD_RATE).toFixed(2);
-    return `${roundedPrice} PKR ($ ${usdPrice})`;
+    const price = Number(priceInPKR) || 0;
+    return price <= 0 ? t('product.free') : new Intl.NumberFormat(document.documentElement.lang, { style: 'currency', currency: 'PKR' }).format(price);
 }
 
 // ============================================================================
@@ -92,21 +95,21 @@ async function loadModerators() {
             moderatorsList.innerHTML += `
                 <div class="moderator-item">
                     <div class="moderator-info">
-                        <div class="moderator-email">${mod.email}</div>
+                        <div class="moderator-email">${escapeHtml(mod.email)}</div>
                         <div class="moderator-meta">
                             <span class="admin-type regular">
                                 Moderator
                             </span>
                             <span class="moderator-date">Added: ${dateStr}</span>
-                            <span class="moderator-by">by: ${mod.addedBy || 'N/A'}
+                            <span class="moderator-by">by: ${escapeHtml(mod.addedBy || 'N/A')}
                         </div>
                     </div>
                     ${canManage ? `
                         <div class="moderator-actions">
-                            <button onclick="removeModerator('${mod.id || mod.email}')" class="remove-btn">
+                            <button onclick="removeModerator(${inlineArg(mod.id || mod.email)})" class="remove-btn">
                                 Remove
                             </button>
-                            <button onclick="showRolePicker('${mod.id || mod.email}', '${mod.email}', 'MODERATOR', this)" class="promote-btn">
+                            <button onclick="showRolePicker(${inlineArg(mod.id || mod.email)}, ${inlineArg((mod.email))}, 'MODERATOR', this)" class="promote-btn">
                                 Change Role
                             </button>
                         </div>
@@ -157,21 +160,21 @@ async function loadAdmins() {
             adminsList.innerHTML += `
                 <div class="admin-item">
                     <div class="admin-info">
-                        <div class="admin-email">${admin.email}</div>
+                        <div class="admin-email">${escapeHtml(admin.email)}</div>
                         <div class="admin-meta">
                             <span class="admin-type regular">
                                 Admin
                             </span>
                             <span class="admin-date">Added: ${formatDate(admin.addedAt)}</span>
-                            <span class="admin-by">by: ${admin.addedBy || 'N/A'}
+                            <span class="admin-by">by: ${escapeHtml(admin.addedBy || 'N/A')}
                         </div>
                     </div>
                     ${(isOriginalSuperAdmin && admin.email !== 'ag.aliengamerz@gmail.com') ? `
                         <div class="admin-actions">
-                            <button onclick="showRolePicker('${docSnap.id}', '${admin.email}', 'ADMIN', this)" class="role-btn">
+                            <button onclick="showRolePicker(${inlineArg(docSnap.id)}, ${inlineArg((admin.email))}, 'ADMIN', this)" class="role-btn">
                                 Change Role
                             </button>
-                            <button onclick="removeAdmin('${docSnap.id}')" class="remove-btn">
+                            <button onclick="removeAdmin(${inlineArg(docSnap.id)})" class="remove-btn">
                                 Remove
                             </button>
                         </div>
@@ -217,21 +220,21 @@ async function loadSuperAdmins() {
             superAdminsList.innerHTML += `
                 <div class="super-admin-item">
                     <div class="super-admin-info">
-                        <div class="super-admin-email">${superAdmin.email}</div>
+                        <div class="super-admin-email">${escapeHtml(superAdmin.email)}</div>
                         <div class="super-admin-meta">
                         <span class="admin-type regular">
                             Super Admin
                         </span>
                             <span class="super-admin-date">Added: ${formatDate(superAdmin.addedAt)}</span>
-                            
+
                         </div>
                     </div>
                     ${canModify ? `
                         <div class="super-admin-actions">
-                            <button onclick="showRolePicker('${docSnap.id || superAdmin.email}', '${superAdmin.email}', 'SUPER_ADMIN', this)" class="demote-btn">
+                            <button onclick="showRolePicker(${inlineArg(docSnap.id || superAdmin.email)}, ${inlineArg((superAdmin.email))}, 'SUPER_ADMIN', this)" class="demote-btn">
                                 Change Role
                             </button>
-                            <button onclick="removeSuperAdmin('${docSnap.id}')" class="remove-btn">
+                            <button onclick="removeSuperAdmin(${inlineArg(docSnap.id)})" class="remove-btn">
                                 Remove
                             </button>
                         </div>
@@ -245,71 +248,94 @@ async function loadSuperAdmins() {
     }
 }
 
-async function loadMessages() {
+let inboxMessages = [];
+let inboxFilter = 'all';
+let inboxUnsubscribe;
+let inboxFiltersInitialized = false;
+
+function renderMessages() {
     const messagesList = document.getElementById('messagesList');
-    if (!messagesList) {
-        console.log('Messages list element not found');
+    if (!messagesList) return;
+    const counts = messageCounts(inboxMessages);
+    for (const button of document.querySelectorAll('[data-message-filter]')) {
+        const selected = button.dataset.messageFilter === inboxFilter;
+        button.setAttribute('aria-pressed', String(selected));
+        button.querySelector('.filter-count').textContent = counts[button.dataset.messageFilter];
+    }
+    const visible = filterMessages(inboxMessages, inboxFilter);
+    if (!visible.length) {
+        messagesList.innerHTML = `<div class="inbox-empty"><span aria-hidden="true">✉</span><p data-i18n="feedback.empty">${t('feedback.empty')}</p></div>`;
         return;
     }
-
-    try {
-        const q = query(collection(db, 'messages'), orderBy('timestamp', 'desc'));
-
-        const unsubscribe = onSnapshot(q, (snapshot) => {
-            messagesList.innerHTML = '';
-
-            if (snapshot.empty) {
-                messagesList.innerHTML = '<p class="no-messages">No messages yet</p>';
-                return;
-            }
-
-            snapshot.forEach((docSnap) => {
-                const message = docSnap.data();
+    messagesList.innerHTML = visible.map(message => {
                 const date = message.timestamp?.toDate?.()
-                    ? message.timestamp.toDate().toLocaleString()
-                    : 'No date';
-                const status = message.status || 'unread';
+                    ? message.timestamp.toDate().toLocaleString(document.documentElement.lang)
+                    : '';
+                const status = messageStatus(message);
                 const archived = message.archived ? true : false;
                 const adminReply = message.adminReply || '';
-
-                messagesList.innerHTML += `
-                    <div class="message-card ${archived ? 'archived' : ''} ${status === 'read' ? 'read' : 'unread'}" id="${docSnap.id}">
+                return `
+                    <article class="message-card ${archived ? 'archived' : ''} ${status}" id="${escapeHtml(message.id)}">
                         <div class="message-header">
-                            <h3>${message.name || 'Anonymous'}</h3>
+                            <h3>${escapeHtml(message.name || t('auth.guest'))}</h3>
                             <div class="message-meta">
                                 <span class="message-date">${date}</span>
-                                <span class="status-badge ${status}">${status.toUpperCase()}</span>
-                                ${archived ? '<span class="archived-badge">ARCHIVED</span>' : ''}
+                                <span class="status-badge ${status === 'read' ? 'read' : 'unread'}" data-status="${status === 'read' ? 'read' : 'unread'}" data-i18n="admin.${status === 'read' ? 'read' : 'unread'}">${t(status === 'read' ? 'admin.read' : 'admin.unread')}</span>
+                                ${archived ? `<span class="archived-badge" data-i18n="admin.archived">${t('admin.archived')}</span>` : ''}
                             </div>
                         </div>
-                        <div class="message-email">
-                            <a href="mailto:${message.email}">${message.email}</a>
-                        </div>
-                        <p class="message-content">${message.message}</p>
-                        ${adminReply ? `<div class="admin-reply"><strong>Admin Reply:</strong><p>${adminReply}</p></div>` : ''}
+                        ${message.email ? `<div class="message-email">
+                            <a href="mailto:${escapeHtml(message.email)}">${escapeHtml(message.email)}</a>
+                        </div>` : ''}
+                        <p class="message-content">${escapeHtml(message.message)}</p>
+                        ${adminReply ? `<div class="admin-reply"><strong data-i18n="admin.reply">${t('admin.reply')}</strong><p>${escapeHtml(adminReply)}</p></div>` : ''}
                         <div class="message-actions">
-                            <button onclick="markMessageRead('${docSnap.id}')" class="mark-read-btn">
-                                ${status === 'read' ? 'Mark Unread' : 'Mark Read'}
+                            <button onclick="markMessageRead(${inlineArg(message.id)})" class="mark-read-btn" data-i18n="admin.${status === 'read' ? 'markUnread' : 'markRead'}">
+                                ${t(status === 'read' ? 'admin.markUnread' : 'admin.markRead')}
                             </button>
-                            <button onclick="replyToEmail('${message.email}')" class="reply-btn">
-                                Reply (email)
+                            ${message.email ? `<button onclick="replyToEmail(decodeURIComponent(${inlineArg(encodeURIComponent(message.email || '').replace(/'/g, '%27'))}))" class="reply-btn" data-i18n="admin.reply">
+                                ${t('admin.reply')}
+                            </button>` : ''}
+                            <button onclick="adminReplyPrompt(${inlineArg(message.id)})" class="admin-reply-btn" data-i18n="admin.addReply">
+                                ${t('admin.addReply')}
                             </button>
-                            <button onclick="adminReplyPrompt('${docSnap.id}')" class="admin-reply-btn">
-                                Add Admin Reply
-                            </button>
-                            <button onclick="deleteMessage('${docSnap.id}')" class="delete-btn">
-                                Delete
+                            <button onclick="deleteMessage(${inlineArg(message.id)})" class="delete-btn" data-i18n="admin.delete">
+                                ${t('admin.delete')}
                             </button>
                         </div>
-                    </div>
+                    </article>
                 `;
-            });
+    }).join('');
+}
+
+async function loadMessages() {
+    const messagesList = document.getElementById('messagesList');
+    if (!messagesList) return;
+    if (!inboxFiltersInitialized) {
+        document.getElementById('messageFilters').addEventListener('click', event => {
+            const button = event.target.closest('[data-message-filter]');
+            if (!button) return;
+            inboxFilter = button.dataset.messageFilter;
+            renderMessages();
+        });
+        window.addEventListener('languageChanged', renderMessages);
+        window.addEventListener('pagehide', () => { inboxUnsubscribe?.(); inboxUnsubscribe = null; });
+        window.addEventListener('pageshow', event => { if (event.persisted) loadMessages(); });
+        inboxFiltersInitialized = true;
+    }
+    // Navigation back to the inbox reuses the existing live Firestore listener.
+    if (inboxUnsubscribe) { renderMessages(); return; }
+    messagesList.innerHTML = `<p class="loading" data-i18n="msg.loading">${t('msg.loading')}</p>`;
+    try {
+        const q = query(collection(db, 'messages'), orderBy('timestamp', 'desc'));
+        inboxUnsubscribe = onSnapshot(q, snapshot => {
+            inboxMessages = snapshot.docs.map(docSnap => ({ ...docSnap.data(), id: docSnap.id }));
+            renderMessages();
         }, (error) => {
             console.error('Error loading messages:', error);
-            messagesList.innerHTML = '<p class="error-message">Error loading messages. Please refresh the page.</p>';
+            inboxUnsubscribe = null;
+            messagesList.innerHTML = `<p class="error-message" data-i18n="auth.network">${t('auth.network')}</p>`;
         });
-
-        window.addEventListener('unload', () => unsubscribe());
     } catch (error) {
         console.error('Error setting up message listener:', error);
     }
@@ -325,35 +351,14 @@ async function loadUsersByRole(role) {
 // USER MANAGEMENT FUNCTIONS
 // ============================================================================
 
-async function removeModerator(moderatorId) {
-    if (!confirm('Are you sure you want to remove this moderator?')) return;
-
+async function removeModerator(id) {
+    if (!confirm(t('admin.confirm'))) return;
     try {
-        const modRef = doc(db, 'moderators', moderatorId);
-        const modDoc = await getDoc(modRef);
-
-        if (modDoc.exists()) {
-            await deleteDoc(modRef);
-        } else {
-            const userRef = doc(db, 'users', moderatorId);
-            const userDoc = await getDoc(userRef);
-            if (userDoc.exists()) {
-                await updateDoc(userRef, {
-                    rank: 'USER',
-                    updatedAt: new Date(),
-                    updatedBy: auth.currentUser?.email || 'system'
-                });
-            } else {
-                throw new Error('Moderator not found');
-            }
-        }
-
-        alert('Moderator removed successfully');
-        await Promise.all([window.loadModerators?.(), window.loadUsers?.()]);
-    } catch (error) {
-        console.error('Error removing moderator:', error);
-        alert(error.message || 'Failed to remove moderator');
-    }
+        let email = id;
+        if (!id.includes('@')) email = (await getDoc(doc(db, 'users', id))).data()?.email;
+        await roleManager.removeRole(auth.currentUser, email, ROLES.MODERATOR);
+        await Promise.all([loadModerators(), window.loadUsers?.()]); alert(t('msg.success'));
+    } catch { alert(t('msg.error')); }
 }
 
 async function removeAdmin(adminId) {
@@ -384,107 +389,25 @@ async function removeSuperAdmin(uid) {
 
 async function toggleAdminRole(adminId, currentIsSuperAdmin) {
     try {
-        if (auth.currentUser?.email !== 'ag.aliengamerz@gmail.com') {
-            throw new Error('Only the original super admin can change admin roles');
-        }
-
-        const adminRef = doc(db, 'admins', adminId);
-        const isSuperAdmin = currentIsSuperAdmin === 'true' || currentIsSuperAdmin === true;
-
-        await updateDoc(adminRef, {
-            isSuperAdmin: !isSuperAdmin,
-            updatedBy: auth.currentUser.email,
-            updatedAt: new Date()
-        });
-
-        alert(`Admin role updated to ${!isSuperAdmin ? 'Super Admin' : 'Regular Admin'}`);
-        await Promise.all([loadAdmins(), loadSuperAdmins()]);
-    } catch (error) {
-        console.error('Error toggling admin role:', error);
-        alert(error.message || 'Failed to toggle admin role');
-    }
+        const wasSuper = currentIsSuperAdmin === true || currentIsSuperAdmin === 'true';
+        await roleManager.assignRole(auth.currentUser, adminId, wasSuper ? ROLES.ADMIN : ROLES.SUPER_ADMIN);
+        await Promise.all([loadAdmins(), loadSuperAdmins()]); alert(t('msg.success'));
+    } catch { alert(t('msg.error')); }
 }
 
-async function promoteModerator(moderatorId) {
-    if (!confirm('Are you sure you want to promote this moderator to admin?')) return;
-
+async function promoteModerator(id) {
+    if (!confirm(t('admin.confirm'))) return;
     try {
-        const modRef = doc(db, 'moderators', moderatorId);
-        const modDoc = await getDoc(modRef);
-        let email = null;
-
-        if (modDoc.exists()) {
-            email = modDoc.data().email;
-            await setDoc(doc(db, 'admins', email), {
-                email,
-                isSuperAdmin: false,
-                addedBy: auth.currentUser?.email || 'system',
-                addedAt: new Date()
-            });
-            await deleteDoc(modRef);
-        } else {
-            const userRef = doc(db, 'users', moderatorId);
-            const userDoc = await getDoc(userRef);
-            if (userDoc.exists()) {
-                email = userDoc.data().email;
-                await setDoc(doc(db, 'admins', email), {
-                    email,
-                    isSuperAdmin: false,
-                    addedBy: auth.currentUser?.email || 'system',
-                    addedAt: new Date()
-                });
-                await updateDoc(userRef, {
-                    rank: 'ADMIN',
-                    updatedAt: new Date(),
-                    updatedBy: auth.currentUser?.email
-                });
-            } else {
-                throw new Error('Moderator not found');
-            }
-        }
-
-        alert('Moderator promoted to admin successfully');
-        await Promise.all([loadModerators(), loadAdmins()]);
-    } catch (error) {
-        console.error('Error promoting moderator:', error);
-        alert(error.message || 'Failed to promote moderator');
-    }
+        const email = id.includes('@') ? id : (await getDoc(doc(db, 'users', id))).data()?.email;
+        await roleManager.assignRole(auth.currentUser, email, ROLES.ADMIN);
+        await Promise.all([loadModerators(), loadAdmins(), window.loadUsers?.()]); alert(t('msg.success'));
+    } catch { alert(t('msg.error')); }
 }
 
 async function demoteFromSuperAdmin(adminEmail) {
-    try {
-        if (auth.currentUser?.email !== 'ag.aliengamerz@gmail.com') {
-            throw new Error('Only the original super admin can demote others');
-        }
-
-        if (adminEmail === 'ag.aliengamerz@gmail.com') {
-            throw new Error('Cannot demote the original super admin');
-        }
-
-        if (!confirm(`Are you sure you want to demote ${adminEmail} to regular admin?`)) {
-            return;
-        }
-
-        const adminRef = doc(db, 'admins', adminEmail);
-        await updateDoc(adminRef, {
-            isSuperAdmin: false,
-            demotedBy: auth.currentUser.email,
-            demotedAt: new Date()
-        });
-
-        await addDoc(collection(db, 'admin_logs'), {
-            action: 'DEMOTE_FROM_SUPERADMIN',
-            adminEmail,
-            performedBy: auth.currentUser.email,
-            timestamp: new Date()
-        });
-
-        alert('Super admin demoted to regular admin successfully');
-        await Promise.all([loadAdmins(), loadSuperAdmins()]);
-    } catch (error) {
-        console.error('Error demoting super admin:', error);
-        alert(error.message);
-    }
+    if (!confirm(t('admin.confirm'))) return;
+    try { await roleManager.assignRole(auth.currentUser, adminEmail, ROLES.ADMIN); await Promise.all([loadAdmins(),loadSuperAdmins()]); alert(t('msg.success')); }
+    catch { alert(t('msg.error')); }
 }
 
 async function deleteMessage(messageId) {
@@ -504,75 +427,8 @@ function replyToEmail(email) {
 }
 
 async function updateMessageMetadata(messageId, updates) {
-    // If we've detected the functions endpoint is unavailable, skip retries
-    if (window._messageUpdateUnavailable) {
-        console.warn('Message update unavailable; skipping attempt');
-        return;
-    }
-    try {
-        const updateFn = httpsCallable(functions, 'updateMessage');
-        const res = await updateFn({ messageId, updates });
-        if (!res.data || !res.data.success) {
-            throw new Error(res.data?.error || 'Failed to update message');
-        }
-        console.log('Message updated (callable)', messageId, updates);
-        return;
-    } catch (err) {
-        console.warn('Callable failed, attempting HTTP fallback:', err?.message || err);
-        // Try HTTP fallback to CORS-enabled endpoint
-        try {
-            if (!auth.currentUser) throw new Error('Not authenticated');
-            const idToken = await auth.currentUser.getIdToken();
-            const region = 'us-central1';
-            const project = 'ag-home-3db3f';
-            const url = `https://${region}-${project}.cloudfunctions.net/updateMessageCors`;
-            const payload = { messageId, updates };
-            const resp = await fetch(url, {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${idToken}`
-                },
-                body: JSON.stringify(payload)
-            });
-            if (!resp.ok) {
-                const text = await resp.text().catch(() => '');
-                throw new Error(`HTTP fallback failed: ${resp.status} ${resp.statusText} ${text}`);
-            }
-            const data = await resp.json().catch(() => ({}));
-            if (!data.success) throw new Error(data.error || 'HTTP fallback did not return success');
-            console.log('Message updated (http fallback)', messageId, updates);
-            return;
-        } catch (httpErr) {
-            console.error('Error updating message metadata:', httpErr);
-            // mark unavailable to avoid spamming the console and alerts repeatedly
-            window._messageUpdateUnavailable = true;
-            // show actionable guidance once
-            const guidance = `Failed to call Cloud Functions (CORS or deployment issue).\n
-Please deploy the functions and install dependencies in the functions folder:\n
-1) cd functions\n+2) npm install\n+3) cd ..\n+4) firebase deploy --only functions:updateMessage,functions:updateMessageCors\n
-After deploying, hard-refresh this page (Ctrl+F5) and try again.`;
-            // Use alert so it's obvious during development
-            alert(guidance);
-            // As a temporary developer convenience: if the current user is an Owner,
-            // attempt a direct client-side Firestore update (may be blocked by rules in production).
-            try {
-                const currentEmail = String(auth.currentUser?.email || '').toLowerCase();
-                if (auth.currentUser && OWNER_EMAILS.includes(currentEmail)) {
-                    await updateDoc(doc(db, 'messages', messageId), {
-                        ...updates,
-                        handledBy: auth.currentUser.email,
-                        handledAt: new Date()
-                    });
-                    console.log('Message updated (direct client workaround)', messageId, updates);
-                    return;
-                }
-            } catch (directErr) {
-                console.error('Direct client update failed:', directErr);
-            }
-            return;
-        }
-    }
+    try { await httpsCallable(functions, 'updateMessage')({ messageId, updates }); }
+    catch { alert(t('msg.error')); }
 }
 
 async function markMessageRead(messageId) {
@@ -580,7 +436,7 @@ async function markMessageRead(messageId) {
         // Toggle based on current DOM badge text
         const el = document.getElementById(messageId);
         const statusBadge = el?.querySelector('.status-badge');
-        const current = statusBadge ? statusBadge.textContent.toLowerCase() : 'unread';
+        const current = statusBadge?.dataset.status || 'unread';
         const newStatus = current === 'read' ? 'unread' : 'read';
         await updateMessageMetadata(messageId, { status: newStatus });
     } catch (err) {
@@ -609,52 +465,19 @@ async function adminReplyPrompt(messageId) {
 
 async function changeUserRole(userId) {
     try {
-        const userDoc = await getDoc(doc(db, 'users', userId));
-        if (!userDoc.exists()) {
-            throw new Error('User not found');
-        }
-
-        const user = userDoc.data();
-        const roles = ['USER', 'MODERATOR', 'ADMIN'];
-        const currentRoleIndex = roles.indexOf(user.role || 'USER');
-        const newRole = roles[(currentRoleIndex + 1) % roles.length];
-
-        if (confirm(`Change ${user.email}'s role to ${newRole}?`)) {
-            await updateDoc(doc(db, 'users', userId), {
-                role: newRole,
-                updatedAt: new Date(),
-                updatedBy: auth.currentUser.email
-            });
-
-            await addDoc(collection(db, 'admin_logs'), {
-                action: 'CHANGE_ROLE',
-                targetUser: user.email,
-                oldRole: user.role,
-                newRole: newRole,
-                performedBy: auth.currentUser.email,
-                timestamp: new Date()
-            });
-
-            alert('User role updated successfully');
-            window.loadUsers?.();
-        }
-    } catch (error) {
-        console.error('Error changing user role:', error);
-        alert(error.message);
-    }
+        const profile = (await getDoc(doc(db, 'users', userId))).data();
+        const current = await roleManager.getUserRole(userId), roles = ['USER','MODERATOR','ADMIN'];
+        const next = roles[(roles.indexOf(current) + 1) % roles.length];
+        if (!confirm(t('admin.confirm'))) return;
+        await httpsCallable(functions, 'setUserRole')({ targetEmail: profile.email, role: next });
+        window.loadUsers?.(); alert(t('msg.success'));
+    } catch { alert(t('msg.error')); }
 }
 
 async function deleteUser(userId) {
-    if (!confirm('Are you sure you want to delete this user?')) return;
-
-    try {
-        await deleteDoc(doc(db, 'users', userId));
-        alert('User deleted successfully');
-        window.loadUsers?.();
-    } catch (error) {
-        console.error('Error deleting user:', error);
-        alert(error.message || 'Failed to delete user');
-    }
+    if (!confirm(t('admin.confirm'))) return;
+    try { await httpsCallable(functions, 'deleteUserProfile')({ userId }); window.loadUsers?.(); alert(t('msg.success')); }
+    catch { alert(t('msg.error')); }
 }
 
 // ============================================================================
@@ -748,92 +571,12 @@ function formatDate(date) {
 // Expose formatDate to other dynamically imported modules that rely on it
 window.formatDate = formatDate;
 
-async function assignRole(email, role) {
-    try {
-        const userRef = doc(db, 'users', email);
-        await setDoc(userRef, {
-            email,
-            rank: role,
-            createdAt: new Date(),
-            createdBy: auth.currentUser?.email || 'system'
-        }, { merge: true });
-
-        console.log(`Role ${role} assigned to ${email} successfully`);
-        return true;
-    } catch (error) {
-        console.error('Error assigning role:', error);
-        throw error;
-    }
-}
+async function assignRole(email, role) { return roleManager.assignRole(auth.currentUser, email, role); }
 
 async function isUserAdmin(user) {
-    if (!user) return false;
-
-    if (OWNER_EMAILS.includes(user.email.toLowerCase())) {
-        return true;
-    }
-
-    try {
-        const adminDoc = await getDoc(doc(db, 'admins', user.email));
-        if (adminDoc.exists()) return true;
-
-        const userDoc = await getDoc(doc(db, 'users', user.uid));
-        if (userDoc.exists()) {
-            const userData = userDoc.data();
-            return userData.rank === ROLES.ADMIN || userData.rank === ROLES.SUPER_ADMIN || userData.rank === ROLES.OWNER;
-        }
-
-        return false;
-    } catch (error) {
-        console.error('Error checking admin status:', error);
-        return false;
-    }
-}
-
-// Service Worker & FCM Setup
-async function setupNotifications() {
-    if (!('serviceWorker' in navigator)) {
-        console.warn('Service Workers not supported');
-        return;
-    }
-
-    if (Notification.permission !== 'granted') {
-        console.warn('Notification permission not granted');
-        return;
-    }
-
-    try {
-        const registration = await navigator.serviceWorker.register('/firebase-messaging-sw.js', {
-            scope: '/',
-            updateViaCache: 'none'
-        });
-
-        // Wait for service worker to become active
-        await new Promise((resolve) => {
-            if (registration.active) {
-                resolve();
-            } else {
-                const sw = registration.installing || registration.waiting;
-                if (sw) {
-                    sw.addEventListener('statechange', () => {
-                        if (sw.state === 'activated') {
-                            resolve();
-                        }
-                    });
-                } else {
-                    // No immediate installing/waiting worker — wait until the global ready promise
-                    navigator.serviceWorker.ready.then(() => resolve());
-                }
-            }
-        });
-
-        console.log('[Service Worker] Activated — proceeding to FCM setup');
-
-        // Now safe to request FCM token
-        await setupFCM();
-    } catch (error) {
-        console.error('Error in notification setup:', error);
-    }
+    if (!user?.emailVerified) return false;
+    try { return [ROLES.OWNER, ROLES.SUPER_ADMIN, ROLES.ADMIN].includes(await roleManager.getUserRole(user.uid)); }
+    catch { return false; }
 }
 
 async function setupUI(user, isSuperAdmin) {
@@ -866,7 +609,13 @@ async function setupUI(user, isSuperAdmin) {
         ]);
 
         // Setup notifications last
-        await setupNotifications();
+        initNotifications();
+        if(!document.getElementById('staffNotifications')) {
+            const section=document.createElement('details');section.id='staffNotifications';section.className='staff-notifications';
+            const summary=document.createElement('summary');summary.dataset.i18n='notifications.title';summary.textContent=t('notifications.title');section.append(summary);
+            (document.querySelector('.admin-content > header')||document.querySelector('header'))?.append(section);
+            mountNotificationSettings(section);
+        }
     } catch (error) {
         console.error('Error setting up UI:', error);
     }
@@ -973,124 +722,16 @@ document.addEventListener('DOMContentLoaded', async () => {
         console.error('Error checking super admin status:', err);
     }
 
-    // Moderator form handling
-    const addModeratorForm = document.getElementById('addModeratorForm');
-    if (addModeratorForm) {
-        addModeratorForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-
-            try {
-                const emailInput = document.getElementById('moderatorEmail');
-                if (!emailInput) {
-                    throw new Error('Moderator email input not found');
-                }
-
-                const email = emailInput.value.trim().toLowerCase();
-                if (!email || !email.includes('@')) {
-                    throw new Error('Please enter a valid email address');
-                }
-
-                if (!auth.currentUser) {
-                    throw new Error('You must be logged in to add moderators');
-                }
-
-                await assignRole(email, ROLES.MODERATOR);
-
-                emailInput.value = '';
-                closeAddModeratorModal();
-
-                alert('Moderator added successfully');
-
-                await Promise.all([window.loadModerators?.(), window.loadUsers?.()]);
-            } catch (error) {
-                console.error('Error adding moderator:', error);
-                alert(error.message || 'Failed to add moderator');
-            }
-        });
-    }
-
-    // Super Admin form handling
-    const addSuperAdminForm = document.getElementById('addSuperAdminForm');
-    if (addSuperAdminForm) {
-        addSuperAdminForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const emailInput = document.getElementById('superAdminEmail');
-            if (!emailInput) return;
-
-            const email = emailInput.value.trim().toLowerCase();
-
-            try {
-                if (auth.currentUser?.email !== 'ag.aliengamerz@gmail.com') {
-                    throw new Error('Only the original super admin can add new super admins');
-                }
-
-                const adminRef = doc(db, 'admins', email);
-                const adminDoc = await getDoc(adminRef);
-
-                if (adminDoc.exists() && adminDoc.data().isSuperAdmin) {
-                    throw new Error('This email is already a super admin');
-                }
-
-                await setDoc(adminRef, {
-                    email,
-                    isSuperAdmin: true,
-                    addedBy: auth.currentUser.email,
-                    addedAt: new Date()
-                }, { merge: true });
-
-                closeAddSuperAdminModal();
-                alert('Super Admin added successfully');
-                await loadSuperAdmins();
-            } catch (error) {
-                console.error('Error adding super admin:', error);
-                alert(error.message);
-            }
-        });
-    }
-
-    // Admin form handling
-    const addAdminForm = document.getElementById('addAdminForm');
-    if (addAdminForm) {
-        addAdminForm.addEventListener('submit', async (e) => {
-            e.preventDefault();
-            const emailInput = document.getElementById('adminEmail');
-            const isSuperAdminInput = document.getElementById('isSuperAdmin');
-
-            if (!emailInput) return;
-
-            const email = emailInput.value.trim().toLowerCase();
-            const isSuperAdmin = isSuperAdminInput?.checked || false;
-
-            try {
-                if (auth.currentUser?.email !== 'ag.aliengamerz@gmail.com') {
-                    throw new Error('Only super admin can add new admins');
-                }
-
-                const adminRef = doc(db, 'admins', email);
-                const adminDoc = await getDoc(adminRef);
-
-                if (adminDoc.exists()) {
-                    throw new Error('This email is already an admin');
-                }
-
-                await setDoc(adminRef, {
-                    email,
-                    isSuperAdmin,
-                    addedBy: auth.currentUser.email,
-                    addedAt: new Date()
-                });
-
-                closeAddAdminModal();
-                alert('Admin added successfully');
-                await Promise.all([loadAdmins(), loadSuperAdmins()]);
-            } catch (error) {
-                console.error('Error adding admin:', error);
-                alert(error.message);
-            }
-        });
-    }
-
-    // Close modals when clicking outside
+    // UI helpers own moderator/super-admin forms; avoid duplicate submissions.
+    document.getElementById('addAdminForm')?.addEventListener('submit', async event => {
+        event.preventDefault();
+        try {
+            const email = document.getElementById('adminEmail').value.trim();
+            const role = document.getElementById('isSuperAdmin')?.checked ? ROLES.SUPER_ADMIN : ROLES.ADMIN;
+            await roleManager.assignRole(auth.currentUser, email, role);
+            closeAddAdminModal(); await loadAdmins(); alert(t('msg.success'));
+        } catch { alert(t('msg.error')); }
+    });
     document.getElementById('addModeratorModal')?.addEventListener('click', (e) => {
         if (e.target.id === 'addModeratorModal') closeAddModeratorModal();
     });
@@ -1103,11 +744,9 @@ document.addEventListener('DOMContentLoaded', async () => {
         if (e.target.id === 'addAdminModal') closeAddAdminModal();
     });
 
-    document.getElementById('addProductModal')?.addEventListener('click', (e) => {
-        if (e.target.id === 'addProductModal') closeAddProductModal();
-    });
+    document.getElementById('addProductModal')?.addEventListener('modalclose', closeAddProductModal);
 
-    // Navigation handlers are now managed by ui-handlers.js (dynamically loaded above)
+    // Navigation handlers are managed by ui-handlers.clean.js (dynamically loaded above).
     window.setupNavigationHandlers?.();
 });
 // ============================================================================
@@ -1193,50 +832,28 @@ onAuthStateChanged(auth, async (user) => {
             // Clear UI state for signed-out users
             const userDisplayEl = document.getElementById('userDisplay');
             if (userDisplayEl) userDisplayEl.textContent = '';
+            location.replace(pageURL('index.html'));
             return;
+        }
+
+        if (!user.emailVerified) {
+            if (user.email) await rejectUnverifiedSession(user);
+            location.replace(pageURL('index.html')); return;
         }
 
         const email = String(user.email || '').toLowerCase();
 
         // Restrict access: only staff (owner/admin/superadmin/moderator) may use control panel.
         try {
-            let rank = '';
-            try {
-                const userDoc = await getDoc(doc(db, 'users', user.uid));
-                if (userDoc.exists()) {
-                    const d = userDoc.data() || {};
-                    rank = (d.rank || d.role || '').toString();
-                }
-            } catch (e) {
-                console.warn('Could not read users document for role check:', e);
-            }
-
-            // If no rank found, check admins/moderators collections
-            if (!rank) {
-                try {
-                    const adminDoc = await getDoc(doc(db, 'admins', email));
-                    if (adminDoc.exists()) rank = 'ADMIN';
-                } catch (e) {
-                    console.warn('Could not check admins collection for role check:', e);
-                }
-            }
-
-            if (!rank) {
-                try {
-                    const modDoc = await getDoc(doc(db, 'moderators', email));
-                    if (modDoc.exists()) rank = 'MODERATOR';
-                } catch (e) {
-                    console.warn('Could not check moderators collection for role check:', e);
-                }
-            }
-
-            const isOwner = OWNER_EMAILS.includes(email);
-            if (!isOwner && (!rank || rank.toUpperCase() === 'USER')) {
+            const rank = await roleManager.getUserRole(user.uid);
+            const isOwner = rank === ROLES.OWNER;
+            if (!isOwner && ![ROLES.ADMIN, ROLES.SUPER_ADMIN, ROLES.MODERATOR].includes(rank)) {
                 alert('Access denied: Control Panel is for staff only.');
-                const baseUrl = window.location.pathname.startsWith('/AG-Home/') ? '/AG-Home' : '';
-                try { window.location.href = baseUrl + '/'; } catch (e) { /* ignore */ }
+                location.replace(pageURL('home.html'));
                 return;
             }
+            initTeamManagement(rank);
+            mountCatalogueImport(rank);
         } catch (err) {
             console.warn('Role check failed, denying access as a safety measure:', err);
             alert('Access denied: could not verify permissions.');
@@ -1261,6 +878,7 @@ onAuthStateChanged(auth, async (user) => {
         }
 
         // Call setupUI to finish initializing the control panel UI
+        document.documentElement.classList.remove('auth-pending');
         try {
             await setupUI(user, isSuperAdmin);
         } catch (err) {
@@ -1275,12 +893,28 @@ onAuthStateChanged(auth, async (user) => {
 // PRODUCT MANAGEMENT FUNCTIONS
 // ============================================================================
 
+function mountCatalogueImport(rank) {
+    if (![ROLES.OWNER, ROLES.SUPER_ADMIN, ROLES.ADMIN].includes(rank) || document.getElementById('initializeCatalogue')) return;
+    const section = document.querySelector('.products-management-container');
+    const notice = document.createElement('div'); notice.className = 'catalogue-import';
+    const hint = document.createElement('p'); hint.dataset.i18n = 'catalogue.initialWarning'; hint.textContent = t('catalogue.initialWarning');
+    const button = document.createElement('button'); button.id = 'initializeCatalogue'; button.type = 'button'; button.className = 'secondary-btn'; button.dataset.i18n = 'catalogue.initialize'; button.textContent = t('catalogue.initialize');
+    button.onclick = () => busy(button, async () => {
+        try { await initializeCatalogue(); toast(t('catalogue.initialized')); notice.hidden = true; await loadControlPanelProducts(); }
+        catch (error) { toast(t(error.message?.startsWith('catalogue.') ? error.message : 'catalogue.initializeError'), 'error'); }
+    });
+    notice.append(hint, button); section.querySelector('.products-header').after(notice);
+    getDoc(doc(db, 'catalogue', 'main')).then(snapshot => { notice.hidden = snapshot.data()?.initialized === true; }).catch(() => {});
+}
+
 let uploadedImageUrl = null;
 
 // Open/Close Product Modal
 function openAddProductModal() {
     document.getElementById('addProductModal').classList.remove('hidden');
     document.getElementById('addProductForm').reset();
+    fillPlatformEditor(document.getElementById('addProductForm'), {});
+    fillProductRelationships(document.getElementById('addProductForm'), {});
     uploadedImageUrl = null;
     clearImagePreview();
 }
@@ -1304,15 +938,22 @@ function closeProductDetailsModal() {
 // Open Edit Product Modal
 function openEditProductModal() {
     closeProductDetailsModal();
-    
+
     const product = window.currentProduct;
     const productId = window.currentProductId;
-    
+
     if (!product || !productId) {
         alert('Error: Product data not found');
         return;
     }
-    
+    const form = document.getElementById('editProductForm');
+    form.reset();
+    clearImagePreview();
+    fillPlatformEditor(form, product);
+    fillProductRelationships(form, product);
+    document.getElementById('editProductVersion').value = product.version || '';
+    document.getElementById('editProductStatus').value = product.status || '';
+
     // Populate translation fields
     document.getElementById('editProductNameEn').value = product.name_en || product.name || '';
     document.getElementById('editProductNameUr').value = product.name_ur || '';
@@ -1320,9 +961,9 @@ function openEditProductModal() {
     document.getElementById('editProductCategoryUr').value = product.category_ur || '';
     document.getElementById('editProductDescriptionEn').value = product.description_en || product.description || '';
     document.getElementById('editProductDescriptionUr').value = product.description_ur || '';
-    
+
     // Populate other form fields
-    document.getElementById('editProductPrice').value = product.price || '';
+    document.getElementById('editProductPrice').value = product.price ?? '';
     document.getElementById('editProductSubCategory').value = product.subCategory || '';
     document.getElementById('editProductSKU').value = product.sku || '';
     document.getElementById('editProductBrand').value = product.brand || '';
@@ -1330,17 +971,17 @@ function openEditProductModal() {
     document.getElementById('editProductLink').value = product.productLink || '';
     document.getElementById('editDownloadLink').value = product.downloadLink || '';
     document.getElementById('editDownloadLabel').value = product.downloadLabel || '';
-    
+
     // Handle tags
     if (product.tags && Array.isArray(product.tags)) {
         document.getElementById('editProductTags').value = product.tags.join(', ');
     }
-    
+
     // Handle specifications
     if (product.specifications && typeof product.specifications === 'object') {
         document.getElementById('editProductSpecs').value = JSON.stringify(product.specifications, null, 2);
     }
-    
+
     // Handle stock (select or custom)
     const stockSelect = document.getElementById('editProductStock');
     if (product.stock === -1) {
@@ -1354,7 +995,7 @@ function openEditProductModal() {
         document.getElementById('editProductStockCustom').value = product.stock || '';
         document.getElementById('editProductStockCustom').style.display = 'block';
     }
-    
+
     // Handle image (URL vs File)
     if (product.image && product.image.startsWith('data:')) {
         // Binary data, can't easily show in file input
@@ -1368,7 +1009,7 @@ function openEditProductModal() {
         document.getElementById('editImageUrlGroup').style.display = 'block';
         document.getElementById('editImageFileGroup').style.display = 'none';
     }
-    
+
     // Show preview of current image
     if (product.image) {
         const preview = document.getElementById('editImagePreview');
@@ -1376,7 +1017,7 @@ function openEditProductModal() {
         previewImg.src = product.image;
         preview.classList.remove('hidden');
     }
-    
+
     // Show edit modal
     const modal = document.getElementById('editProductModal');
     if (modal) {
@@ -1403,7 +1044,7 @@ document.addEventListener('DOMContentLoaded', () => {
             const imageFileInput = document.getElementById('editProductImageFile');
             const imageUrlGroup = document.getElementById('editImageUrlGroup');
             const imageFileGroup = document.getElementById('editImageFileGroup');
-            
+
             if (e.target.value === 'url') {
                 imageUrlGroup.style.display = 'block';
                 imageFileGroup.style.display = 'none';
@@ -1436,9 +1077,9 @@ document.addEventListener('DOMContentLoaded', () => {
         editImageFileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
-                // Check file size (5MB max)
-                if (file.size > 5 * 1024 * 1024) {
-                    alert('Image size exceeds 5MB limit');
+                // Check file size (500KB max)
+                if (file.size > 500 * 1024) {
+                    alert('Image size exceeds 500KB limit');
                     e.target.value = '';
                     return;
                 }
@@ -1476,7 +1117,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (editForm) {
         editForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            await updateProduct();
+            await busy(e.submitter, updateProduct);
         });
     }
 
@@ -1485,7 +1126,7 @@ document.addEventListener('DOMContentLoaded', () => {
     if (addProductForm) {
         addProductForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            await addProduct();
+            await busy(e.submitter, addProduct);
         });
     }
 
@@ -1495,7 +1136,7 @@ document.addEventListener('DOMContentLoaded', () => {
         radio.addEventListener('change', (e) => {
             const imageUrlInput = document.getElementById('productImageUrl');
             const imageFileInput = document.getElementById('productImageFile');
-            
+
             if (e.target.value === 'url') {
                 imageUrlInput.disabled = false;
                 imageFileInput.disabled = true;
@@ -1514,9 +1155,9 @@ document.addEventListener('DOMContentLoaded', () => {
         imageFileInput.addEventListener('change', (e) => {
             const file = e.target.files[0];
             if (file) {
-                // Check file size (5MB max)
-                if (file.size > 5 * 1024 * 1024) {
-                    alert('Image size exceeds 5MB limit');
+                // Check file size (500KB max)
+                if (file.size > 500 * 1024) {
+                    alert('Image size exceeds 500KB limit');
                     e.target.value = '';
                     return;
                 }
@@ -1542,26 +1183,28 @@ function clearImagePreview() {
     const imagePreview = document.getElementById('imagePreview');
     const previewImg = document.getElementById('previewImg');
     const productImageFile = document.getElementById('productImageFile');
-    
+
     if (imagePreview) imagePreview.classList.add('hidden');
     if (previewImg) previewImg.src = '';
     if (productImageFile) productImageFile.value = '';
-    
+
     // Clear edit form image preview
     const editImagePreview = document.getElementById('editImagePreview');
     const editPreviewImg = document.getElementById('editPreviewImage');
     const editProductImageFile = document.getElementById('editProductImageFile');
-    
+
     if (editImagePreview) editImagePreview.classList.add('hidden');
     if (editPreviewImg) editPreviewImg.src = '';
     if (editProductImageFile) editProductImageFile.value = '';
-    
+
     uploadedImageUrl = null;
 }
 
 // Add Product to Firestore
 async function addProduct() {
     try {
+        const compatibility = readPlatformEditor(document.getElementById('addProductForm'));
+        if (!compatibility) return;
         // Translation fields
         const name_en = document.getElementById('productNameEn').value;
         const name_ur = document.getElementById('productNameUr').value;
@@ -1569,16 +1212,19 @@ async function addProduct() {
         const category_ur = document.getElementById('productCategoryUr').value;
         const description_en = document.getElementById('productDescriptionEn').value;
         const description_ur = document.getElementById('productDescriptionUr').value;
-        
+
         // Use English name as default fallback
         const name = name_en || name_ur;
         const category = category_en || category_ur;
-        const price = parseFloat(document.getElementById('productPrice').value);
+        const priceInput = document.getElementById('productPrice').value.trim();
+        const price = priceInput === '' ? null : Number(priceInput);
+        if (price === null) Object.assign(compatibility, normalizeProduct({ ...compatibility, schemaVersion: 3 }));
+        const relationships = readProductRelationships(document.getElementById('addProductForm'));
         const subCategory = document.getElementById('productSubCategory').value;
         const tagsInput = document.getElementById('productTags').value;
         const sku = document.getElementById('productSKU').value;
         const brand = document.getElementById('productBrand').value;
-        
+
         // Handle stock - can be unlimited (-1) or a number
         let stock = 0;
         const stockSelect = document.getElementById('productStock');
@@ -1587,7 +1233,7 @@ async function addProduct() {
         } else {
             stock = parseInt(stockSelect.value) || 0;
         }
-        
+
         const rating = parseFloat(document.getElementById('productRating').value) || 0;
         const specsInput = document.getElementById('productSpecs').value;
         const productLink = document.getElementById('productLink').value;
@@ -1597,7 +1243,7 @@ async function addProduct() {
         // Determine image
         let image = null;
         const imageType = document.querySelector('input[name="imageType"]:checked').value;
-        
+
         if (imageType === 'url') {
             image = document.getElementById('productImageUrl').value;
         } else if (uploadedImageUrl) {
@@ -1605,13 +1251,15 @@ async function addProduct() {
         }
 
         // Parse tags
+        if (image && !safeURL(image, { image: true })) { alert(t('validation.url')); return; }
+        if ((price !== null && (!Number.isFinite(price) || price < 0)) || stock < -1 || rating < 0 || rating > 5) { alert(t('validation.required')); return; }
         const tags = tagsInput ? tagsInput.split(',').map(t => t.trim()).filter(t => t) : [];
 
         // Parse specifications
         let specs = {};
         if (specsInput) {
             try {
-                specs = JSON.parse(specsInput);
+                specs = JSON.parse(specsInput); if (!specs || Array.isArray(specs) || typeof specs !== 'object') throw new Error('Invalid specifications');
             } catch (err) {
                 alert('Invalid JSON in specifications field');
                 return;
@@ -1623,6 +1271,7 @@ async function addProduct() {
             // Fallback fields for compatibility
             name,
             category,
+            description: description_en || description_ur || '',
             description_en: description_en || null,
             description_ur: description_ur || null,
             // Translation-specific fields (Strategy 1: Language-specific field names)
@@ -1643,6 +1292,10 @@ async function addProduct() {
             productLink: productLink || null,
             downloadLink: downloadLink || null,
             downloadLabel: downloadLabel || 'Download',
+            ...compatibility,
+            ...relationships,
+            version: document.getElementById('productVersion').value.trim(),
+            status: document.getElementById('productStatus').value,
             createdAt: new Date(),
             updatedAt: new Date(),
             createdBy: auth.currentUser?.email || 'unknown'
@@ -1668,6 +1321,8 @@ async function addProduct() {
 // Update Product
 async function updateProduct() {
     try {
+        const compatibility = readPlatformEditor(document.getElementById('editProductForm'));
+        if (!compatibility) return;
         const productId = window.currentProductId;
         if (!productId) {
             alert('Error: Product ID not found');
@@ -1681,11 +1336,14 @@ async function updateProduct() {
         const category_ur = document.getElementById('editProductCategoryUr').value;
         const description_en = document.getElementById('editProductDescriptionEn').value;
         const description_ur = document.getElementById('editProductDescriptionUr').value;
-        
+
         // Use English name as default fallback
         const name = name_en || name_ur;
         const category = category_en || category_ur;
-        const price = parseFloat(document.getElementById('editProductPrice').value);
+        const priceInput = document.getElementById('editProductPrice').value.trim();
+        const price = priceInput === '' ? null : Number(priceInput);
+        if (price === null) Object.assign(compatibility, normalizeProduct({ ...compatibility, schemaVersion: 3 }));
+        const relationships = readProductRelationships(document.getElementById('editProductForm'));
         const description = description_en || description_ur;
         const subCategory = document.getElementById('editProductSubCategory').value;
         const tagsInput = document.getElementById('editProductTags').value;
@@ -1709,7 +1367,7 @@ async function updateProduct() {
         // Determine image
         let image = window.currentProduct.image;
         const imageType = document.querySelector('input[name="editImageType"]:checked').value;
-        
+
         if (imageType === 'url') {
             const imageUrl = document.getElementById('editProductImageUrl').value;
             if (imageUrl) {
@@ -1720,13 +1378,15 @@ async function updateProduct() {
         }
 
         // Parse tags
+        if (image && !safeURL(image, { image: true })) { alert(t('validation.url')); return; }
+        if ((price !== null && (!Number.isFinite(price) || price < 0)) || stock < -1 || rating < 0 || rating > 5) { alert(t('validation.required')); return; }
         const tags = tagsInput ? tagsInput.split(',').map(t => t.trim()).filter(t => t) : [];
 
         // Parse specifications
         let specs = {};
         if (specsInput) {
             try {
-                specs = JSON.parse(specsInput);
+                specs = JSON.parse(specsInput); if (!specs || Array.isArray(specs) || typeof specs !== 'object') throw new Error('Invalid specifications');
             } catch (err) {
                 alert('Invalid JSON in specifications field');
                 return;
@@ -1759,6 +1419,11 @@ async function updateProduct() {
             productLink: productLink || null,
             downloadLink: downloadLink || null,
             downloadLabel: downloadLabel || 'Download',
+            ...compatibility,
+            ...relationships,
+            ...(window.currentProduct.catalogueKey ? { catalogueKey: window.currentProduct.catalogueKey, slug: window.currentProduct.slug } : {}),
+            version: document.getElementById('editProductVersion').value.trim(),
+            status: document.getElementById('editProductStatus').value,
             updatedAt: new Date(),
             updatedBy: auth.currentUser?.email || 'unknown'
         };
@@ -1788,7 +1453,7 @@ async function loadControlPanelProducts() {
     try {
         productsList.innerHTML = '<div class="loading">Loading products...</div>';
 
-        const q = query(collection(db, 'products'), orderBy('createdAt', 'desc'));
+        const q = query(collection(db, 'products'));
         const snapshot = await getDocs(q);
 
         if (snapshot.empty) {
@@ -1806,8 +1471,10 @@ async function loadControlPanelProducts() {
             const productCard = document.createElement('div');
             productCard.className = 'product-control-card';
             productCard.style.cursor = 'pointer';
-            
+
             // Set onclick handler with error handling
+            productCard.tabIndex = 0;
+            productCard.onkeydown = e => { if (e.key === "Enter") showProductDetails(doc.id, product); };
             productCard.onclick = function(e) {
                 console.log('Product card clicked:', doc.id, product);
                 if (e.target.closest('.product-card-actions')) {
@@ -1816,40 +1483,40 @@ async function loadControlPanelProducts() {
                 }
                 showProductDetails(doc.id, product);
             };
-            
+
             productCard.innerHTML = `
                 <div class="product-card-image">
-                    ${product.image ? `<img src="${product.image}" alt="${product.name}">` : '<div class="no-image">No Image</div>'}
+                    ${product.image ? `<img src="${escapeHtml(safeURL(product.image, { image: true }))}" alt="${escapeHtml(product.name)}">` : '<div class="no-image">No Image</div>'}
                 </div>
                 <div class="product-card-info">
-                    <h3>${product.name}</h3>
+                    <h3>${escapeHtml(product.name)}</h3>
                     <p class="product-card-price">${formatPrice(product.price || 0)}</p>
                     <p class="product-card-category">
-                        <strong>Category:</strong> ${product.category}
-                        ${product.subCategory ? ` > ${product.subCategory}` : ''}
+                        <strong>Category:</strong> ${escapeHtml(product.category)}
+                        ${product.subCategory ? ` > ${escapeHtml(product.subCategory)}` : ''}
                     </p>
-                    <p class="product-card-description">${product.description || 'No description'}</p>
+                    <p class="product-card-description">${escapeHtml(product.description || product.description_en || product.description_ur || '')}</p>
                     <div class="product-card-meta">
-                        <span><strong>SKU:</strong> ${product.sku || 'N/A'}</span>
-                        <span><strong>Brand:</strong> ${product.brand || 'N/A'}</span>
-                        <span><strong>Stock:</strong> ${product.stock === -1 ? 'Unlimited' : (product.stock || 0)}</span>
-                        <span><strong>Rating:</strong> ${product.rating ? product.rating + '/5' : 'N/A'}</span>
+                        <span><strong>SKU:</strong> ${escapeHtml(product.sku || '—')}</span>
+                        <span><strong>Brand:</strong> ${escapeHtml(product.brand || '—')}</span>
+                        <span><strong data-i18n="details.stock">${t('details.stock')}</strong>: ${product.stock === -1 ? `<span data-i18n="details.stockUnlimited">${t('details.stockUnlimited')}</span>` : escapeHtml(product.stock || 0)}</span>
+                        <span><strong>Rating:</strong> ${escapeHtml(product.rating ? product.rating + '/5' : '—')}</span>
                     </div>
                     ${product.tags && product.tags.length > 0 ? `
                         <div class="product-card-tags">
-                            ${product.tags.map(tag => `<span class="tag">${tag}</span>`).join('')}
+                            ${product.tags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('')}
                         </div>
                     ` : ''}
-                    <p class="product-card-date">Added: ${dateStr} by ${product.createdBy}</p>
+                    <p class="product-card-date"><span data-i18n="admin.added">${t('admin.added')}</span>: ${dateStr} <span data-i18n="admin.by">${t('admin.by')}</span> ${escapeHtml(product.createdBy || '—')}</p>
                 </div>
                 <div class="product-card-actions" onclick="event.stopPropagation();">
-                    <button onclick="editProduct('${doc.id}')" class="edit-btn" title="Edit Product">
+                    <button onclick="editProduct(${inlineArg(doc.id)})" class="edit-btn" title="Edit Product">
                         <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
                             <path d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25z" />
                             <path d="M20.71 7.04c.39-.39.39-1.02 0-1.41l-2.34-2.34c-.39-.39-1.02-.39-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z" />
                         </svg>
                     </button>
-                    <button onclick="deleteProduct('${doc.id}', '${product.name}')" class="delete-btn" title="Delete Product">
+                    <button onclick="deleteProduct(${inlineArg(doc.id)}, '')" class="delete-btn" title="Delete Product">
                         <svg viewBox="0 0 24 24" fill="currentColor" width="18" height="18">
                             <path d="M6 19c0 1.1.9 2 2 2h8c1.1 0 2-.9 2-2V7H6v12zM19 4h-3.5l-1-1h-9l-1 1H5v2h14V4z" />
                         </svg>
@@ -1869,23 +1536,23 @@ async function loadControlPanelProducts() {
 function showProductDetails(productId, product) {
     try {
         console.log('showProductDetails called with:', productId, product);
-        
+
         const modal = document.getElementById('productDetailsModal');
         if (!modal) {
             console.error('Modal element #productDetailsModal not found!');
             alert('Error: Product details modal not found. Please refresh the page.');
             return;
         }
-        
+
         console.log('Modal found, populating details...');
-        
+
         // Helper function to safely set text content
         const setTextContent = (id, value) => {
             const el = document.getElementById(id);
             if (el) el.textContent = value;
             else console.warn(`Element #${id} not found`);
         };
-        
+
         // Helper function to safely set value
         const setElementContent = (id, value, type = 'text') => {
             const el = document.getElementById(id);
@@ -1899,15 +1566,15 @@ function showProductDetails(productId, product) {
                 el.innerHTML = value;
             }
         };
-        
+
         // Store current product ID for editing
         window.currentProductId = productId;
         window.currentProduct = product;
-        
+
         // Set basic info
         setTextContent('detailsProductName', product.name || 'Unknown Product');
         setTextContent('detailsName', product.name || '');
-        
+
         const priceValue = product.price ? parseFloat(product.price) : 0;
         console.log('control.js - Product price:', product.price, 'Parsed as:', priceValue);
         const formattedPriceCtrl = formatPrice(priceValue);
@@ -1915,7 +1582,7 @@ function showProductDetails(productId, product) {
         setTextContent('detailsPrice', formattedPriceCtrl);
         console.log('control.js - Price element content:', document.getElementById('detailsPrice')?.textContent);
         setTextContent('detailsCategory', product.category || 'N/A');
-        
+
         // Set product image
         const imgElement = document.getElementById('detailsProductImage');
         if (imgElement) {
@@ -1944,7 +1611,7 @@ function showProductDetails(productId, product) {
         setOptionalField('detailsSubCategory', 'subCategoryRow', product.subCategory);
         setOptionalField('detailsBrand', 'brandRow', product.brand);
         setOptionalField('detailsSKU', 'skuRow', product.sku);
-        
+
         const stockRow = document.getElementById('stockRow');
         const stockEl = document.getElementById('detailsStock');
         let stockValue = null;
@@ -1953,7 +1620,7 @@ function showProductDetails(productId, product) {
         }
         console.log('control.js - Stock value:', product.stock, 'Parsed as:', stockValue, 'Type:', typeof stockValue);
         console.log('control.js - stockValue === -1?', stockValue === -1);
-        
+
         if (stockValue === -1) {
             // Unlimited stock
             console.log('control.js - Setting stock to Unlimited');
@@ -1977,7 +1644,7 @@ function showProductDetails(productId, product) {
         }
 
         setOptionalField('detailsRating', 'ratingRow', product.rating ? `${product.rating}/5 ⭐` : null);
-        
+
         const descRow = document.getElementById('descriptionRow');
         const descEl = document.getElementById('detailsDescription');
         if (product.description) {
@@ -1991,7 +1658,7 @@ function showProductDetails(productId, product) {
         const tagsRow = document.getElementById('tagsRow');
         const tagsContainer = document.getElementById('detailsTags');
         if (product.tags && product.tags.length > 0 && tagsContainer && tagsRow) {
-            tagsContainer.innerHTML = product.tags.map(tag => `<span class="tag">${tag}</span>`).join('');
+            tagsContainer.innerHTML = product.tags.map(tag => `<span class="tag">${escapeHtml(tag)}</span>`).join('');
             tagsRow.style.display = 'flex';
         } else if (tagsRow) {
             tagsRow.style.display = 'none';
@@ -2002,7 +1669,7 @@ function showProductDetails(productId, product) {
         const specsContainer = document.getElementById('detailsSpecs');
         if (product.specifications && Object.keys(product.specifications).length > 0 && specsContainer && specsRow) {
             const specsHTML = Object.entries(product.specifications)
-                .map(([key, value]) => `<div class="spec-item"><strong>${key}:</strong> ${value}</div>`)
+                .map(([key, value]) => `<div class="spec-item"><strong>${escapeHtml(key)}:</strong> ${escapeHtml(String(value))}</div>`)
                 .join('');
             specsContainer.innerHTML = specsHTML;
             specsRow.style.display = 'flex';
@@ -2096,7 +1763,7 @@ async function loadReports() {
             console.log('Processing report document:', docSnap.id);
             console.log('Report data structure:', Object.keys(report));
             console.log('Full report data:', JSON.stringify(report, null, 2));
-            
+
             let reportTimestamp = new Date();
             if (report.timestamp) {
                 if (typeof report.timestamp?.toDate === 'function') {
@@ -2107,27 +1774,27 @@ async function loadReports() {
                     reportTimestamp = report.timestamp;
                 }
             }
-            
+
             const reportObj = {
                 id: docSnap.id,
                 ...report,
                 timestamp: reportTimestamp
             };
-            
+
             console.log('Adding report to allReports:', reportObj);
             allReports.push(reportObj);
         });
 
         console.log('Total reports loaded:', allReports.length);
         console.log('allReports array:', allReports);
-        
+
         // Sort by timestamp descending (in case orderBy didn't work)
         allReports.sort((a, b) => {
             const timeA = a.timestamp instanceof Date ? a.timestamp.getTime() : 0;
             const timeB = b.timestamp instanceof Date ? b.timestamp.getTime() : 0;
             return timeB - timeA;
         });
-        
+
         displayReports(allReports);
     } catch (error) {
         console.error('Error loading reports:', error);
@@ -2157,7 +1824,7 @@ function displayReports(reports) {
 
     reports.forEach(report => {
         console.log('Rendering report:', report.id, report);
-        
+
         let dateStr = 'Unknown date';
         try {
             let timestamp = report.timestamp;
@@ -2211,7 +1878,7 @@ function displayReports(reports) {
         const reportReason = reasonDisplay[report.reason] || escapeHtml(report.reason || 'Unknown');
         const reportDetails = report.details ? escapeHtml(report.details) : '';
         const reportStatus = statusBadge[report.status] || '<span class="badge badge-warning">Pending</span>';
-        
+
         console.log('Rendering report - Name:', productName, 'ID:', productId, 'Status:', report.status);
 
         const reportHtml = `
@@ -2248,17 +1915,17 @@ function displayReports(reports) {
                     </div>
                 </div>
                 <div class="report-actions">
-                    <button onclick="markReportStatus('${report.id}', 'reviewed')" class="action-btn btn-primary" ${report.status === 'reviewed' ? 'disabled' : ''}>✓ Mark Reviewed</button>
-                    <button onclick="markReportStatus('${report.id}', 'resolved')" class="action-btn btn-success" ${report.status === 'resolved' ? 'disabled' : ''}>✓ Resolve</button>
-                    <button onclick="markReportStatus('${report.id}', 'dismissed')" class="action-btn btn-secondary" ${report.status === 'dismissed' ? 'disabled' : ''}>✗ Dismiss</button>
-                    <button onclick="deleteReport('${report.id}')" class="action-btn btn-danger">🗑️ Delete</button>
+                    <button onclick="markReportStatus(${inlineArg(report.id)}, 'reviewed')" class="action-btn btn-primary" ${report.status === 'reviewed' ? 'disabled' : ''}>✓ Mark Reviewed</button>
+                    <button onclick="markReportStatus(${inlineArg(report.id)}, 'resolved')" class="action-btn btn-success" ${report.status === 'resolved' ? 'disabled' : ''}>✓ Resolve</button>
+                    <button onclick="markReportStatus(${inlineArg(report.id)}, 'dismissed')" class="action-btn btn-secondary" ${report.status === 'dismissed' ? 'disabled' : ''}>✗ Dismiss</button>
+                    <button onclick="deleteReport(${inlineArg(report.id)})" class="action-btn btn-danger">🗑️ Delete</button>
                 </div>
             </div>
         `;
 
         reportsList.innerHTML += reportHtml;
     });
-    
+
     console.log('Finished rendering all reports');
 }
 
@@ -2266,7 +1933,7 @@ function displayReports(reports) {
 function filterReports() {
     const statusFilter = document.getElementById('reportStatusFilter')?.value || '';
     console.log('Filtering reports by status:', statusFilter);
-    
+
     if (statusFilter === '') {
         console.log('No filter, displaying all', allReports.length, 'reports');
         displayReports(allReports);
@@ -2321,14 +1988,47 @@ function escapeHtml(text) {
         '"': '&quot;',
         "'": '&#039;'
     };
-    return text.replace(/[&<>"']/g, m => map[m]) || '';
+    return String(text ?? '').replace(/[&<>"']/g, m => map[m]);
 }
 
 // Edit Product (placeholder - can be expanded)
-function editProduct(productId) {
-    alert('Edit functionality coming soon!');
-    // Can be implemented to open a pre-filled form
+async function editProduct(productId) {
+    try {
+        const snapshot = await getDoc(doc(db, 'products', productId));
+        if (!snapshot.exists()) return;
+        window.currentProductId = productId;
+        window.currentProduct = normalizeProduct({ ...snapshot.data(), id: snapshot.id });
+        openEditProductModal();
+    } catch { alert(t('msg.error')); }
 }
+
+document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
+    initLocalization();
+    initAdminLocalization();
+    initModals();
+    initCharacter();
+    const logoutButton = document.getElementById('logoutBtn');
+    if (logoutButton) { logoutButton.type = 'button'; logoutButton.addEventListener('click', event => { event.preventDefault(); logout().catch(() => alert(t('msg.error'))); }); }
+    for (const [formId, prefix] of [['addProductForm', 'product'], ['editProductForm', 'editProduct']]) {
+        const form = document.getElementById(formId);
+        mountPlatformEditor(form, prefix);
+        mountProductRelationships(form, prefix);
+        document.getElementById(`${prefix}Price`).required = false;
+        for (const id of prefix === 'product' ? ['productLink', 'productDownloadLink', 'productDownloadLabel'] : ['editProductLink', 'editDownloadLink', 'editDownloadLabel']) {
+            const input = document.getElementById(id);
+            input.closest('.form-group, .input-group')?.setAttribute('hidden', '');
+            input.required = false;
+            input.closest('fieldset')?.setAttribute('hidden', '');
+        }
+        const group = document.createElement('div');
+        group.className = 'form-grid';
+        group.innerHTML = `<div class="form-group"><label for="${prefix}Version" data-i18n="editor.version">${t('editor.version')}</label><input id="${prefix}Version" maxlength="40"></div><div class="form-group"><label for="${prefix}Status" data-i18n="editor.status">${t('editor.status')}</label><select id="${prefix}Status"><option value="available" data-i18n="editor.available">${t('editor.available')}</option><option value="beta" data-i18n="editor.beta">${t('editor.beta')}</option><option value="coming-soon" data-i18n="editor.comingSoon">${t('editor.comingSoon')}</option><option value="" data-i18n="org.unspecified">${t('org.unspecified')}</option></select></div>`;
+        form.querySelector('.compatibility-editor').before(group);
+        prepareProductForm(form, prefix);
+        initValidation(form);
+    }
+});
 
 console.log('Exported functions:', Object.keys(exportedFunctions));
 
@@ -2342,3 +2042,9 @@ window.loadReports = loadReports;
 window.filterReports = filterReports;
 window.markReportStatus = markReportStatus;
 window.deleteReport = deleteReport;
+
+
+
+
+
+function inlineArg(value) { return escapeHtml(JSON.stringify(String(value ?? ''))); }

@@ -2,24 +2,26 @@
 <html lang="en">
 
 <head>
+    <script src="/theme-init.js"></script>
+    <script src="/site-loader.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AG | Products</title>
     <link rel="stylesheet" href="css/styles_1.css">
     <link rel="icon"
-        href="https://raw.githubusercontent.com/AG-Pixel-creater/AG-Home/refs/heads/master/logo.png"
+        href="/logo.png"
         type="logo.png">
 
     <meta name="description" content="AG Electronics Private Limited ki websites, software solutions aur digital products dekhein.">
 
     <meta name="robots" content="index, follow">
-</head>
+<link rel="stylesheet" href="css/styles.css"><link rel="stylesheet" href="css/refinements.css"><link rel="stylesheet" href="css/character.css"></head>
 
-<body data-theme="dark">
+<body data-theme="light">
     <!-- Add Loader -->
     <div class="loader-container">
         <div class="logo-loader">
-            <img src="https://raw.githubusercontent.com/AG-Pixel-creater/AG-Home/refs/heads/master/logo.png"
+            <img src="/logo.png"
                 alt="Logo">
             <div class="smoke-ring"></div>
             <div class="smoke-ring" style="animation-delay: 0.5s"></div>
@@ -47,18 +49,19 @@
                 <br>
             </div>
         </header>
-        
+
         <nav>
             <ul>
                 <li><a href="home.html" data-i18n="nav.home">Home</a></li>
                 <li><a href="about.html" data-i18n="nav.about">About Us</a></li>
+                <li><a href="team.html" data-i18n="team.title">Our Team</a></li>
                 <li class="active"><a href="products.html" data-i18n="nav.products">Products</a></li>
                 <li><a href="privacy.html" data-i18n="nav.privacy">Privacy</a></li>
                 <li><a href="contact.html" data-i18n="nav.contact">Contact Us</a></li>
             </ul>
         </nav>
-        
-        
+
+
         <!-- Shared Settings Modal -->
         <div id="settingsModal" class="modal hidden">
             <div class="modal-content">
@@ -141,14 +144,14 @@
                     <div class="form-group">
                         <label for="reportReason" data-i18n="product.reportReason">Reason for Report:</label>
                         <select id="reportReason" class="form-control" required>
-                            <option value="">-- Select a reason --</option>
-                            <option value="inappropriate">Inappropriate Content</option>
-                            <option value="fake">Fake/Counterfeit Product</option>
-                            <option value="misleading">Misleading Information</option>
-                            <option value="broken_link">Broken Link/Download</option>
-                            <option value="spam">Spam</option>
-                            <option value="offensive">Offensive Material</option>
-                            <option value="other">Other</option>
+                            <option value="" data-i18n="report.select">-- Select a reason --</option>
+                            <option value="inappropriate" data-i18n="report.inappropriate">Inappropriate Content</option>
+                            <option value="fake" data-i18n="report.fake">Fake/Counterfeit Product</option>
+                            <option value="misleading" data-i18n="report.misleading">Misleading Information</option>
+                            <option value="broken_link" data-i18n="report.broken_link">Broken Link/Download</option>
+                            <option value="spam" data-i18n="report.spam">Spam</option>
+                            <option value="offensive" data-i18n="report.offensive">Offensive Material</option>
+                            <option value="other" data-i18n="report.other">Other</option>
                         </select>
                     </div>
                     <div class="form-group">
@@ -230,7 +233,7 @@
                     <a id="downloadLinkBtn" href="#" download class="btn btn-success" style="display: none;">
                         <span id="downloadBtnLabel" data-i18n="details.download">📥 Download</span>
                     </a>
-                    <button type="button" onclick="openReportModal()" class="btn btn-warning" data-i18n="product.report">
+                    <button id="reportProductBtn" type="button" onclick="openReportModal()" class="btn btn-warning" data-i18n="product.report">
                         🚩 Report Product
                     </button>
                 </div>

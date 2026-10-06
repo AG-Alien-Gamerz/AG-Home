@@ -1,25 +1,28 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="auth-pending">
 
 <head>
+    <script src="/theme-init.js"></script>
+    <script src="/site-loader.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AG | Control Panel</title>
     <link rel="stylesheet" href="css/styles_1.css">
-    <link rel="manifest" href="/manifest.json">
+    <link rel="manifest" href="/AG-Home/manifest.json">
     <link rel="icon"
-        href="https://raw.githubusercontent.com/AG-Pixel-creater/AG-Home/refs/heads/master/logo.png"
+        href="/logo.png"
         type="logo.png">
 
     <meta name="robots" content="noindex, nofollow">
-</head>
+<link rel="stylesheet" href="css/styles.css"><link rel="stylesheet" href="css/refinements.css"><link rel="stylesheet" href="css/character.css"></head>
 
-<body data-theme="dark">
+<body class="control-page" data-theme="light">
     <header>
         <nav>
             <ul>
                 <li><a href="home.html">Home</a></li>
                 <li><a href="about.html">About Us</a></li>
+                <li><a href="team.html" data-i18n="team.title">Our Team</a></li>
                 <li><a href="products.html">Products</a></li>
                 <li><a href="privacy.html">Privacy Policy</a></li>
                 <li><a href="contact.html">Contact Us</a></li>
@@ -30,7 +33,7 @@
         <!-- Vertical Navigation -->
         <nav class="admin-nav">
             <div class="admin-nav-header">
-                <img src="https://raw.githubusercontent.com/AG-Pixel-creater/AG-Home/refs/heads/master/logo.png"
+                <img src="/logo.png"
                     alt="AG Logo" class="admin-logo">
                 <h3>AG Home | Control Panel</h3>
             </div>
@@ -93,6 +96,7 @@
                     Manage All Ranks
                 </a>
 
+                <a href="#team-management" class="nav-link hidden" data-section="team-management" id="teamManagementLink"><span data-i18n="team.title">Our Team</span></a>
                 <a href="#product-management" class="nav-link" data-section="product-management">
                     <svg viewBox="0 0 24 24" fill="currentColor">
                         <path d="M7 18c-1.1 0-1.99.9-1.99 2S5.9 22 7 22s2-.9 2-2-.9-2-2-2zM1 2v2h2l3.6 7.59-1.35 2.45c-.16.28-.25.61-.25.96 0 1.1.9 2 2 2h12v-2H7.42c-.14 0-.25-.11-.25-.25l.03-.12.9-1.63h7.45c.75 0 1.41-.41 1.75-1.03l3.58-6.49c.08-.14.12-.31.12-.48 0-.55-.45-1-1-1H5.21l-.94-2H1zm16 16c-1.1 0-1.99.9-1.99 2s.89 2 1.99 2 2-.9 2-2-.9-2-2-2z" />
@@ -147,11 +151,17 @@
 
             <!-- Content Sections -->
             <div class="section-container">
+                <section id="team-management-section" class="content-section hidden"><div id="teamManagement"></div></section>
                 <!-- Messages Section -->
                 <div id="messages-section" class="content-section active">
                     <div class="messages-container">
-                        <h2>Contact Messages</h2>
-                        <div id="messagesList" class="messages-list">
+                        <h2 id="inboxHeading" data-i18n="admin.messages">Feedback messages</h2>
+                        <div id="messageFilters" class="inbox-filters" role="group" aria-labelledby="inboxHeading">
+                            <button type="button" data-message-filter="all" aria-pressed="true" aria-controls="messagesList"><span data-i18n="feedback.all">All</span><span class="filter-count">0</span></button>
+                            <button type="button" data-message-filter="unread" aria-pressed="false" aria-controls="messagesList"><span class="unread-dot" aria-hidden="true"></span><span data-i18n="admin.unread">Unread</span><span class="filter-count">0</span></button>
+                            <button type="button" data-message-filter="read" aria-pressed="false" aria-controls="messagesList"><span data-i18n="admin.read">Read</span><span class="filter-count">0</span></button>
+                        </div>
+                        <div id="messagesList" class="messages-list" aria-live="polite" aria-relevant="additions text">
                             <!-- Messages will be loaded here -->
                         </div>
                     </div>
@@ -260,8 +270,8 @@
                         <h2>Chats</h2>
                         <div id="chatsList" class="chats-list"></div>
                         <form id="chatForm" class="chat-form">
-                            <input id="chatInput" type="text" placeholder="Type a message..." autocomplete="off" />
-                            <button type="submit" class="send-btn">Send</button>
+                            <input id="chatInput" type="text" placeholder="Message" data-i18n-placeholder="contact.message" data-i18n-aria="contact.message" aria-label="Message" autocomplete="off" />
+                            <button type="submit" class="send-btn" data-i18n="btn.submit">Submit</button>
                         </form>
                     </div>
                 </div>
@@ -271,7 +281,7 @@
                     <div class="owner-container">
                         <h2>Owner Controls</h2>
                         <div id="ownerControls" class="owner-controls">
-                            <p>Advanced owner controls coming soon...</p>
+                            <div class="hero-actions"><a class="secondary-btn" href="#product-management" data-section="product-management" onclick="showSection('product-management')" data-i18n="nav.products">Products</a><a class="secondary-btn" href="#manage-all-ranks" data-section="manage-all-ranks" onclick="showSection('manage-all-ranks')" data-i18n="admin.users">Users</a></div>
                         </div>
                     </div>
                 </div>
@@ -407,7 +417,7 @@
                 <!-- Basic Info -->
                 <fieldset class="form-fieldset">
                     <legend>Basic Information</legend>
-                    
+
                     <!-- Product Names (English & Urdu) -->
                     <div class="form-row">
                         <div class="form-group">
@@ -419,7 +429,7 @@
                             <input type="text" id="productNameUr" required placeholder="مثال: وائرلیس ہیڈفون" dir="rtl">
                         </div>
                     </div>
-                    
+
                     <!-- Price -->
                     <div class="form-row">
                         <div class="form-group">
@@ -444,7 +454,7 @@
                 <!-- Categorization -->
                 <fieldset class="form-fieldset">
                     <legend>Categorization</legend>
-                    
+
                     <!-- Category (English & Urdu) -->
                     <div class="form-row">
                         <div class="form-group">
@@ -471,7 +481,7 @@
                 <!-- Image -->
                 <fieldset class="form-fieldset">
                     <legend>Product Image</legend>
-                    
+
                     <div class="form-group">
                         <label><input type="radio" name="imageType" value="url" checked> Image URL</label>
                         <input type="url" id="productImageUrl" placeholder="https://example.com/image.jpg">
@@ -480,7 +490,7 @@
                     <div class="form-group">
                         <label><input type="radio" name="imageType" value="upload"> Upload Image</label>
                         <input type="file" id="productImageFile" accept="image/*">
-                        <small>Supported: JPG, PNG, WebP (Max 5MB)</small>
+                        <small>Supported: JPG, PNG, WebP (Max 500KB)</small>
                     </div>
 
                     <div id="imagePreview" class="image-preview hidden">
@@ -492,7 +502,7 @@
                 <!-- Additional Details -->
                 <fieldset class="form-fieldset">
                     <legend>Additional Details</legend>
-                    
+
                     <div class="form-row">
                         <div class="form-group">
                             <label for="productSKU">SKU</label>
@@ -536,7 +546,7 @@
                 <!-- Product Links -->
                 <fieldset class="form-fieldset">
                     <legend>Product Links & Downloads</legend>
-                    
+
                     <div class="form-group">
                         <label for="productLink">Product Link (Purchase/Info)</label>
                         <input type="url" id="productLink" placeholder="https://example.com/product">

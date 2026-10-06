@@ -1,0 +1,22 @@
+.account-action-page { min-height: 100dvh; }
+.account-action-layout { min-height: calc(100dvh - 100px); display: grid; align-items: center; justify-items: center; padding: 32px 20px 100px; }
+.account-action-card { width: min(100%, 480px); padding: clamp(24px, 5vw, 44px); background: var(--surface); border: 1px solid var(--line); border-radius: 24px; box-shadow: 0 18px 55px #0000000c; animation: action-appear .3s ease-out; }
+.action-emblem { width: 56px; height: 56px; display: grid; place-items: center; color: var(--accent); background: var(--surface-alt); border: 1px solid var(--line); border-radius: 16px; margin-block-end: 24px; transition: color .2s, background-color .2s; }
+.action-emblem svg { width: 28px; height: 28px; }
+.account-action-card .eyebrow { font-size: .75rem; }
+.account-action-card h1 { font-size: clamp(1.65rem, 5vw, 2rem); line-height: 1.3; margin: 10px 0 12px; text-align: start; }
+.account-action-card #actionStatus { color: var(--muted); line-height: 1.65; margin: 0 0 20px; }
+.action-recipient { padding: 10px 14px; background: var(--surface-alt); border: 1px solid var(--line); border-radius: 10px; overflow-wrap: anywhere; font-size: .9rem; text-align: start; margin-block: 0 24px; }
+.account-action-card .input-group { margin-block-end: 20px; }
+.account-action-card :is(input, button, .action-login) { min-height: 46px; }
+.account-action-card .primary-btn { width: 100%; margin-block: 4px 16px; }
+.account-action-card .action-login { display: flex; justify-content: center; align-items: center; width: 100%; margin-block-start: 12px; }
+.account-action-card #actionMatch { min-height: 1.5em; margin-block: 0 12px; }
+.account-action-card #actionMatch.is-match { color: var(--accent); }
+.account-action-card[data-state="error"] #actionStatus { color: var(--danger); }
+.account-action-card[data-state="success"] .action-emblem { border-color: var(--accent); }
+.account-action-card[data-state="loading"] .action-emblem { animation: action-pulse 1.1s ease-in-out infinite alternate; }
+@keyframes action-appear { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes action-pulse { to { opacity: .45; } }
+@media (max-width: 520px) { .account-action-layout { align-items: start; padding: 24px 16px 110px; } .account-action-card { border-radius: 18px; } }
+@media (prefers-reduced-motion: reduce) { .account-action-card, .action-emblem { animation: none !important; transition: none !important; } }

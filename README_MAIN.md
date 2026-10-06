@@ -129,12 +129,12 @@ af-home/
 ├── src/                           # Frontend source
 │   ├── js/
 │   │   ├── firebase-config.js     # Firebase initialization (env vars)
-│   │   ├── auth.js                # Authentication logic
+│   │   ├── auth-service.js        # Authentication logic
 │   │   ├── firebase.js            # Firebase utilities
 │   │   ├── app.js                 # Main app logic
 │   │   ├── fcm-manager.js         # FCM notifications
 │   │   ├── role-manager.js        # Role management
-│   │   ├── ui-handlers.js         # UI event handlers
+│   │   ├── ui-handlers.clean.js   # UI event handlers
 │   │   └── [other modules]
 │   ├── css/
 │   │   └── styles.css             # Styling

@@ -1,555 +1,154 @@
-const functions = require('firebase-functions');
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
+const functions = require('firebase-functions/v1');
+const { initializeApp } = require('firebase-admin/app');
+const { getAuth } = require('firebase-admin/auth');
+const { getFirestore, FieldValue } = require('firebase-admin/firestore');
+const { getMessaging } = require('firebase-admin/messaging');
 const express = require('express');
 const cors = require('cors');
-const admin = require('firebase-admin');
-
-// Load environment variables
-require('dotenv').config();
-
-admin.initializeApp();
-
-// Get admin email from environment variable
-const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
-const ALLOWED_ADMIN_EMAILS = (process.env.ALLOWED_ADMIN_EMAILS)
-    .split(',')
-    .map(email => email.toLowerCase().trim());
-
-=======
-const admin = require('firebase-admin');
-admin.initializeApp();
-
->>>>>>> 73f62c93d43060085308101d24f0cd6dbf5b4002
-=======
-const admin = require('firebase-admin');
-admin.initializeApp();
-
->>>>>>> 73f62c93d43060085308101d24f0cd6dbf5b4002
-=======
-const admin = require('firebase-admin');
-admin.initializeApp();
-
->>>>>>> 73f62c93d43060085308101d24f0cd6dbf5b4002
-exports.notifyAdmin = functions.https.onCall(async (data, context) => {
-    try {
-        // Check if user is authenticated
-        if (!context.auth) {
-            throw new functions.https.HttpsError(
-                'unauthenticated',
-                'User must be authenticated.'
-            );
-        }
-
-        // Check if data exists
-        if (!data.messageId || !data.sender || !data.preview) {
-            throw new functions.https.HttpsError(
-                'invalid-argument',
-                'Missing required message data.'
-            );
-        }
-
-        // Get admin tokens with error handling
-        const adminSnapshot = await admin.firestore()
-            .collection('adminTokens')
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-            .where('email', '==', ADMIN_EMAIL)
-=======
-            .where('email', '==', 'ag.aliengamerz@gmail.com')
->>>>>>> 73f62c93d43060085308101d24f0cd6dbf5b4002
-=======
-            .where('email', '==', 'ag.aliengamerz@gmail.com')
->>>>>>> 73f62c93d43060085308101d24f0cd6dbf5b4002
-=======
-            .where('email', '==', 'ag.aliengamerz@gmail.com')
->>>>>>> 73f62c93d43060085308101d24f0cd6dbf5b4002
-            .get();
-
-        if (adminSnapshot.empty) {
-            console.log('No admin tokens found');
-            return { success: false, error: 'No admin devices registered' };
-        }
-
-        // Send notifications with better error handling
-        const notifications = adminSnapshot.docs.map(async (doc) => {
-            try {
-                const token = doc.data().token;
-                if (!token) return null;
-
-                return await admin.messaging().send({
-                    token: token,
-                    notification: {
-                        title: `New Message from ${data.sender}`,
-                        body: data.preview + '...'
-                    },
-                    webpush: {
-                        fcmOptions: {
-                            link: `/admin.html?message=${data.messageId}`
-                        },
-                        notification: {
-                            requireInteraction: true,
-                            badge: '/icon.png'
-                        }
-                    }
-                });
-            } catch (error) {
-                console.error('Error sending notification:', error);
-                if (error.code === 'messaging/invalid-token') {
-                    // Remove invalid token
-                    await doc.ref.delete();
-                }
-                return null;
-            }
-        });
-
-        const results = await Promise.all(notifications);
-        const successCount = results.filter(Boolean).length;
-
-        return {
-            success: true,
-            notificationsSent: successCount
-        };
-
-    } catch (error) {
-        console.error('Function error:', error);
-        throw new functions.https.HttpsError(
-            'internal',
-            error.message || 'Failed to send notification'
-        );
-    }
+const { canAssign, canRemove, ownerEmails } = require('./permissions');
+const {normalizeUsername, usernameLogin} = require('./username-login');
+const {deliver}=require('./push');
+const {createHash}=require('node:crypto');
+initializeApp();
+const db = getFirestore();
+const stamp = () => FieldValue.serverTimestamp();
+exports.signInUsername = functions.runWith({timeoutSeconds:20,maxInstances:10}).https.onCall((data,context)=>usernameLogin(data,context, {
+    db, auth:getAuth(), apiKey:process.env.FIREBASE_WEB_API_KEY,
+    emulatorHost:process.env.FUNCTIONS_EMULATOR === 'true' ? process.env.FIREBASE_AUTH_EMULATOR_HOST : undefined
+}));
+exports.normalizeProfileUsername = functions.firestore.document('users/{uid}').onWrite(async change => {
+    if (!change.after.exists) return;
+    const profile = change.after.data(), usernameKey = normalizeUsername(profile.username);
+    if (profile.usernameKey === usernameKey || (!usernameKey && !profile.usernameKey)) return;
+    await change.after.ref.update({usernameKey});
 });
-
-// Optional: Create a function to handle new messages
-exports.onNewMessage = functions.firestore
-    .document('messages/{messageId}')
-    .onCreate(async (snap, context) => {
-        const message = snap.data();
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-
-=======
-        
->>>>>>> 73f62c93d43060085308101d24f0cd6dbf5b4002
-=======
-        
->>>>>>> 73f62c93d43060085308101d24f0cd6dbf5b4002
-=======
-        
->>>>>>> 73f62c93d43060085308101d24f0cd6dbf5b4002
-        // Get admin tokens
-        const adminTokens = await admin.firestore()
-            .collection('adminTokens')
-            .get();
-
-        // Send notifications
-        const notifications = adminTokens.docs.map(doc => {
-            return admin.messaging().send({
-                token: doc.data().token,
-                notification: {
-                    title: 'New Contact Message',
-                    body: `From: ${message.name}\n${message.message.substring(0, 100)}...`
-                }
-            });
-        });
-
-        return Promise.all(notifications);
+async function userRank(email) {
+    if (ownerEmails.includes(email)) return 'OWNER';
+    const administrator = await db.doc(`admins/${email}`).get();
+    if (administrator.exists) return administrator.data().isSuperAdmin ? 'SUPER_ADMIN' : 'ADMIN';
+    return (await db.doc(`moderators/${email}`).get()).exists ? 'MODERATOR' : 'USER';
+}
+async function authorize(context) {
+    if (!context.auth) throw new functions.https.HttpsError('unauthenticated', 'Sign in required.');
+    if (!context.auth.token.email_verified || !context.auth.token.email) throw new functions.https.HttpsError('permission-denied', 'Verified email required.');
+    const email = context.auth.token.email.toLowerCase();
+    const user = await getAuth().getUser(context.auth.uid);
+    if (user.disabled || !user.emailVerified || user.email?.toLowerCase() !== email) throw new functions.https.HttpsError('permission-denied', 'Current verified identity required.');
+    return { email, rank: await userRank(email) };
+}
+exports.manageTeam=require('./team')({functions,db,authorize,stamp});
+exports.initializeCatalogue=require('./catalogue')({functions,db,authorize,stamp});
+async function changeRole(data, context, removing = false) {
+    const caller = await authorize(context), targetEmail = String(data?.targetEmail || '').trim().toLowerCase();
+    const requested = removing ? 'USER' : data?.role;
+    if (!/^[^\s@/]+@[^\s@/]+\.[^\s@/]+$/.test(targetEmail)) throw new functions.https.HttpsError('invalid-argument', 'Valid target email required.');
+    const oldRole = await userRank(targetEmail);
+    if (targetEmail === caller.email || ownerEmails.includes(targetEmail) || !(removing ? canRemove(caller.rank, oldRole) : canAssign(caller.rank, oldRole, requested))) {
+        throw new functions.https.HttpsError('permission-denied', 'This role change is not permitted.');
+    }
+    let user;
+    try { user = await getAuth().getUserByEmail(targetEmail); } catch { throw new functions.https.HttpsError('not-found', 'The user must create an account first.'); }
+    const batch = db.batch();
+    batch.delete(db.doc(`admins/${targetEmail}`)); batch.delete(db.doc(`moderators/${targetEmail}`));
+    if (['ADMIN','SUPER_ADMIN'].includes(requested)) batch.set(db.doc(`admins/${targetEmail}`), { email: targetEmail, userId: user.uid, isSuperAdmin: requested === 'SUPER_ADMIN', addedBy: caller.email, addedAt: stamp() });
+    if (requested === 'MODERATOR') batch.set(db.doc(`moderators/${targetEmail}`), { email: targetEmail, userId: user.uid, addedBy: caller.email, addedAt: stamp() });
+    batch.set(db.doc(`users/${user.uid}`), { email: targetEmail, role: requested, rank: requested, updatedAt: stamp(), updatedBy: caller.email }, { merge: true });
+    batch.set(db.collection('admin_logs').doc(), { action: removing ? 'ROLE_REMOVE' : 'ROLE_CHANGE', targetEmail, oldRole, newRole: requested, performedBy: caller.email, timestamp: stamp() });
+    await batch.commit();
+    // Rules use server-owned role documents, so revocation takes effect without a token refresh.
+    return { success: true };
+}
+exports.setUserRole = functions.https.onCall((data, context) => changeRole(data, context));
+exports.removeUserRole = functions.https.onCall((data, context) => changeRole(data, context, true));
+async function updateMessage(data, context) {
+    const caller = await authorize(context);
+    if (!['OWNER','SUPER_ADMIN','ADMIN','MODERATOR'].includes(caller.rank)) throw new functions.https.HttpsError('permission-denied', 'Staff only.');
+    if (!data?.messageId || data.messageId.includes('/') || !data.updates || typeof data.updates !== 'object') throw new functions.https.HttpsError('invalid-argument', 'Invalid message update.');
+    const updates = {};
+    if ('status' in data.updates) { if (!['read','unread'].includes(data.updates.status)) throw new functions.https.HttpsError('invalid-argument', 'Invalid status.'); updates.status = data.updates.status; }
+    if ('archived' in data.updates) { if (typeof data.updates.archived !== 'boolean') throw new functions.https.HttpsError('invalid-argument', 'Invalid archive state.'); updates.archived = data.updates.archived; }
+    if ('adminReply' in data.updates) { if (typeof data.updates.adminReply !== 'string' || data.updates.adminReply.length > 10000) throw new functions.https.HttpsError('invalid-argument', 'Invalid reply.'); updates.adminReply = data.updates.adminReply; }
+    if (!Object.keys(updates).length) throw new functions.https.HttpsError('invalid-argument', 'No allowed updates.');
+    await db.doc(`messages/${data.messageId}`).update({ ...updates, handledBy: caller.email, handledAt: stamp() });
+    await db.collection('admin_logs').add({ action: 'MESSAGE_UPDATE', messageId: data.messageId, performedBy: caller.email, timestamp: stamp() });
+    return { success: true };
+}
+exports.updateMessage = functions.https.onCall(updateMessage);
+function httpEndpoint(handler) {
+    const app = express();
+    const origins = (process.env.ALLOWED_ORIGINS || 'https://ag-pixel-creater.github.io,http://localhost:5173,http://127.0.0.1:5173').split(',');
+    app.use(cors({ origin: (origin, callback) => callback(null, !origin || origins.includes(origin)), methods: ['POST','OPTIONS'], allowedHeaders: ['Content-Type','Authorization'] }));
+    app.use(express.json({ limit: '32kb' }));
+    app.post('/', async (req, res) => {
+        try {
+            const match = /^Bearer (.+)$/.exec(req.get('Authorization') || '');
+            if (!match) return res.status(401).json({ error: 'unauthenticated' });
+            const token = await getAuth().verifyIdToken(match[1], true);
+            const result = await handler(req.body, { auth: { uid: token.uid, token } }); res.json(result);
+        } catch (error) { res.status(error.code === 'permission-denied' ? 403 : error.code === 'invalid-argument' ? 400 : 401).json({ error: error.code || 'internal' }); }
     });
-<<<<<<< HEAD
-<<<<<<< HEAD
-<<<<<<< HEAD
-
-// Callable function to set a user's role. Runs with admin privileges.
-exports.setUserRole = functions.https.onCall(async (data, context) => {
-    try {
-        if (!context.auth) {
-            throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated.');
-        }
-
-        const callerEmail = (context.auth.token && context.auth.token.email) ? String(context.auth.token.email).toLowerCase() : null;
-        const allowedOwners = ALLOWED_ADMIN_EMAILS;
-
-        // Allow owners or super-admins (check admins collection for isSuperAdmin)
-        let isAllowed = false;
-        if (callerEmail && allowedOwners.includes(callerEmail)) isAllowed = true;
-        if (!isAllowed) {
-            const adminDoc = await admin.firestore().collection('admins').doc(callerEmail).get().catch(() => null);
-            if (adminDoc && adminDoc.exists && adminDoc.data() && adminDoc.data().isSuperAdmin) isAllowed = true;
-        }
-        if (!isAllowed) {
-            throw new functions.https.HttpsError('permission-denied', 'Only owners or super-admins may call setUserRole');
-        }
-
-        const { targetEmail, role } = data || {};
-        if (!targetEmail || !role) {
-            throw new functions.https.HttpsError('invalid-argument', 'Missing targetEmail or role');
-        }
-
-        const normalizedEmail = String(targetEmail).toLowerCase().trim();
-
-        const firestore = admin.firestore();
-
-        // Find existing user doc by email
-        const usersQuery = await firestore.collection('users').where('email', '==', normalizedEmail).get();
-        let userId = null;
-        if (usersQuery.empty) {
-            // create new user doc with auto id
-            const newUserRef = firestore.collection('users').doc();
-            userId = newUserRef.id;
-            await newUserRef.set({
-                email: normalizedEmail,
-                role: role,
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                createdBy: callerEmail,
-                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-                updatedBy: callerEmail
-            });
-        } else {
-            userId = usersQuery.docs[0].id;
-            await firestore.collection('users').doc(userId).set({ role: role, updatedAt: admin.firestore.FieldValue.serverTimestamp(), updatedBy: callerEmail }, { merge: true });
-        }
-
-        // Handle special collections
-        if (role === 'MODERATOR') {
-            await firestore.collection('moderators').doc(normalizedEmail).set({
-                email: normalizedEmail,
-                addedBy: callerEmail,
-                addedAt: admin.firestore.FieldValue.serverTimestamp(),
-                userId: userId
-            });
-        } else if (['ADMIN', 'SUPER_ADMIN'].includes(role)) {
-            await firestore.collection('admins').doc(normalizedEmail).set({
-                email: normalizedEmail,
-                isSuperAdmin: role === 'SUPER_ADMIN',
-                addedBy: callerEmail,
-                addedAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-        }
-
-        // Log action
-        await firestore.collection('admin_logs').add({
-            action: 'ROLE_CHANGE',
-            targetEmail: normalizedEmail,
-            newRole: role,
-            performedBy: callerEmail,
-            timestamp: admin.firestore.FieldValue.serverTimestamp()
-        });
-
-        return { success: true };
-    } catch (err) {
-        console.error('setUserRole function error:', err);
-        if (err instanceof functions.https.HttpsError) throw err;
-        throw new functions.https.HttpsError('internal', err.message || 'Failed to set user role');
-    }
+    return functions.https.onRequest(app);
+}
+exports.setUserRoleCors = httpEndpoint(changeRole);
+exports.updateMessageCors = httpEndpoint(updateMessage);
+async function notify(messageId) {
+    const reference = db.doc(`messages/${messageId}`);
+    const message = await db.runTransaction(async tx => {
+        const snapshot = await tx.get(reference); if (!snapshot.exists || snapshot.data().notificationAttempted) return null;
+        tx.update(reference, { notificationAttempted: true }); return snapshot.data();
+    });
+    if (!message) return { success: true, notificationsSent: 0 };
+    return {success:true,...await pushEvent('feedback:'+messageId,'feedback',message.userId,'AG Home · New feedback','control.html#messages')};
+}
+function pushEvent(eventId,kind,actorUid,title,path) {return deliver({db,auth:getAuth(),messaging:getMessaging(),rank:userRank,eventId,kind,actorUid,title,path});}
+exports.setPushSubscription=functions.https.onCall(async(data,context)=>{
+    await authorize(context);
+    if(typeof data?.token!=='string' || data.token.length<20 || data.token.length>4096 || typeof data.enabled!=='boolean')throw new functions.https.HttpsError('invalid-argument','Invalid subscription.');
+    const ref=db.doc('pushSubscriptions/'+createHash('sha256').update(data.token).digest('hex'));
+    const old=await ref.get();
+    if(old.exists && old.data().uid!==context.auth.uid)throw new functions.https.HttpsError('permission-denied','Subscription belongs to another session.');
+    if(data.enabled)await ref.set({uid:context.auth.uid,token:data.token,enabled:true,updatedAt:stamp()});else await ref.delete();
+    return {success:true};
 });
-
-// Callable function to remove a user's elevated role (demote to USER)
-exports.removeUserRole = functions.https.onCall(async (data, context) => {
-    try {
-        if (!context.auth) {
-            throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated.');
-        }
-
-        const callerEmail = (context.auth.token && context.auth.token.email) ? String(context.auth.token.email).toLowerCase() : null;
-        const allowedOwners = ['ag.aliengamerz@gmail.com', 'hamza.datashare@gmail.com'];
-        // Allow owners or super-admins to remove roles
-        let isAllowedRemove = false;
-        if (callerEmail && allowedOwners.includes(callerEmail)) isAllowedRemove = true;
-        if (!isAllowedRemove) {
-            const adminDoc = await admin.firestore().collection('admins').doc(callerEmail).get().catch(() => null);
-            if (adminDoc && adminDoc.exists && adminDoc.data() && adminDoc.data().isSuperAdmin) isAllowedRemove = true;
-        }
-        if (!isAllowedRemove) {
-            throw new functions.https.HttpsError('permission-denied', 'Only owners or super-admins may call removeUserRole');
-        }
-
-        const { targetEmail, role } = data || {};
-        if (!targetEmail || !role) {
-            throw new functions.https.HttpsError('invalid-argument', 'Missing targetEmail or role');
-        }
-
-        const normalizedEmail = String(targetEmail).toLowerCase().trim();
-        const firestore = admin.firestore();
-
-        // Clean up special collections
-        if (role === 'MODERATOR') {
-            await firestore.collection('moderators').doc(normalizedEmail).delete().catch(() => null);
-        } else if (['ADMIN', 'SUPER_ADMIN'].includes(role)) {
-            await firestore.collection('admins').doc(normalizedEmail).delete().catch(() => null);
-        }
-
-        // Update user's role to USER if exists
-        const usersQuery = await firestore.collection('users').where('email', '==', normalizedEmail).get();
-        if (!usersQuery.empty) {
-            await firestore.collection('users').doc(usersQuery.docs[0].id).set({ role: 'USER', updatedAt: admin.firestore.FieldValue.serverTimestamp(), updatedBy: callerEmail }, { merge: true });
-        }
-
-        // Log action
-        await firestore.collection('admin_logs').add({
-            action: 'ROLE_REMOVE',
-            targetEmail: normalizedEmail,
-            oldRole: role,
-            performedBy: callerEmail,
-            timestamp: admin.firestore.FieldValue.serverTimestamp()
-        });
-
-        return { success: true };
-    } catch (err) {
-        console.error('removeUserRole function error:', err);
-        if (err instanceof functions.https.HttpsError) throw err;
-        throw new functions.https.HttpsError('internal', err.message || 'Failed to remove user role');
-    }
+exports.reportAuthError=functions.https.onCall(async(data,context)=>{
+    const code=String(data?.code||'');
+    if(!/^auth\/[a-z-]{1,70}$/.test(code))throw new functions.https.HttpsError('invalid-argument','Invalid error code.');
+    const bucket=Math.floor(Date.now()/3600000),key=createHash('sha256').update((context.rawRequest?.ip||'unknown')+':'+bucket).digest('hex');
+    const ref=db.doc('_authReports/'+key);
+    await db.runTransaction(async tx=>{const old=await tx.get(ref);if((old.data()?.count||0)>=3)throw new functions.https.HttpsError('resource-exhausted','Try later.');tx.set(ref,{count:(old.data()?.count||0)+1,expiresAt:new Date(Date.now()+7200000)});});
+    await db.collection('messages').add({name:'Phone sign-in error report',email:'',userId:context.auth?.uid||'anonymous',message:'Phone SMS request failed. Firebase error: '+code+'. Firebase SMS requires billing; check provider, SMS regions, authorized domain and reCAPTCHA configuration.',timestamp:stamp(),status:'unread',archived:false,source:'auth-error'});
+    return {success:true};
 });
-
-// Callable function to allow admins/owners to update message metadata (status, archived, adminReply)
-exports.updateMessage = functions.https.onCall(async (data, context) => {
-    try {
-        if (!context.auth) {
-            throw new functions.https.HttpsError('unauthenticated', 'User must be authenticated.');
-        }
-
-        const callerEmail = (context.auth.token && context.auth.token.email) ? String(context.auth.token.email).toLowerCase() : null;
-        const allowedOwners = ['ag.aliengamerz@gmail.com', 'hamza.datashare@gmail.com'];
-
-        // Check if caller is owner or admin
-        let isAdminAllowed = false;
-        if (callerEmail && allowedOwners.includes(callerEmail)) isAdminAllowed = true;
-        if (!isAdminAllowed) {
-            const adminDoc = await admin.firestore().collection('admins').doc(callerEmail).get().catch(() => null);
-            if (adminDoc && adminDoc.exists && adminDoc.data() && adminDoc.data().isSuperAdmin) isAdminAllowed = true;
-            // Allow regular admins as message handlers too
-            if (!isAdminAllowed) {
-                const adminDoc2 = await admin.firestore().collection('admins').doc(callerEmail).get().catch(() => null);
-                if (adminDoc2 && adminDoc2.exists) isAdminAllowed = true;
-            }
-        }
-
-        if (!isAdminAllowed) {
-            throw new functions.https.HttpsError('permission-denied', 'Only owners or admins may update messages');
-        }
-
-        const { messageId, updates } = data || {};
-        if (!messageId || !updates || typeof updates !== 'object') {
-            throw new functions.https.HttpsError('invalid-argument', 'Missing messageId or updates');
-        }
-
-        const allowedKeys = ['status', 'archived', 'adminReply'];
-        const payload = {};
-        Object.keys(updates).forEach(k => {
-            if (allowedKeys.includes(k)) payload[k] = updates[k];
-        });
-
-        if (Object.keys(payload).length === 0) {
-            throw new functions.https.HttpsError('invalid-argument', 'No valid fields to update');
-        }
-
-        // Add handled metadata
-        payload.handledBy = callerEmail;
-        payload.handledAt = admin.firestore.FieldValue.serverTimestamp();
-
-        await admin.firestore().collection('messages').doc(messageId).set(payload, { merge: true });
-
-        // Log action
-        await admin.firestore().collection('admin_logs').add({
-            action: 'MESSAGE_UPDATE',
-            messageId,
-            updates: payload,
-            performedBy: callerEmail,
-            timestamp: admin.firestore.FieldValue.serverTimestamp()
-        });
-
-        return { success: true };
-    } catch (err) {
-        console.error('updateMessage function error:', err);
-        if (err instanceof functions.https.HttpsError) throw err;
-        throw new functions.https.HttpsError('internal', err.message || 'Failed to update message');
-    }
+exports.onNewReport=functions.firestore.document('reports/{id}').onCreate((snapshot,context)=>pushEvent(context.eventId,'report',snapshot.data().reportedBy,'AG Home · New report','control.html#reports'));
+exports.onNewChat=functions.firestore.document('global_chat/{id}').onCreate((snapshot,context)=>pushEvent(context.eventId,'chat',snapshot.data().senderId,'AG Home · New chat message','control.html#chats'));
+exports.onProductChanged=functions.firestore.document('products/{id}').onWrite(async(change,context)=>{
+    if(!change.after.exists)return null;
+    const after=change.after.data(),before=change.before.exists?change.before.data():null;
+    if(before && JSON.stringify(before)===JSON.stringify(after))return null;
+    // All imported documents share their commit timestamp. Only that first event
+    // is quiet; ordinary later edits continue to notify opted-in subscribers.
+    if(require('./product-events').isCatalogueImport(before,after))return null;
+    const {productHref}=await import('./product-model.mjs');
+    return pushEvent(context.eventId,'product','',before?'AG Home · Product updated':'AG Home · New product',productHref(context.params.id));
 });
-
-// HTTP endpoint with CORS to support direct POSTs from browsers during local dev
-const updateMessageApp = express();
-updateMessageApp.use(cors({ origin: true }));
-updateMessageApp.use(express.json());
-
-updateMessageApp.options('*', cors({ origin: true }));
-
-updateMessageApp.post('/', async (req, res) => {
-    try {
-        // Expect Authorization: Bearer <idToken>
-        const authHeader = req.get('Authorization') || req.get('authorization');
-        if (!authHeader) return res.status(401).json({ error: 'Missing Authorization header' });
-        const parts = authHeader.split(' ');
-        if (parts.length !== 2 || parts[0] !== 'Bearer') return res.status(401).json({ error: 'Invalid Authorization header' });
-        const idToken = parts[1];
-
-        const decoded = await admin.auth().verifyIdToken(idToken).catch(() => null);
-        if (!decoded || !decoded.email) return res.status(401).json({ error: 'Invalid token' });
-
-        const callerEmail = String(decoded.email).toLowerCase();
-        const allowedOwners = ['ag.aliengamerz@gmail.com', 'hamza.datashare@gmail.com'];
-
-        let isAdminAllowed = false;
-        if (callerEmail && allowedOwners.includes(callerEmail)) isAdminAllowed = true;
-        if (!isAdminAllowed) {
-            const adminDoc = await admin.firestore().collection('admins').doc(callerEmail).get().catch(() => null);
-            if (adminDoc && adminDoc.exists && adminDoc.data() && adminDoc.data().isSuperAdmin) isAdminAllowed = true;
-            if (!isAdminAllowed) {
-                const adminDoc2 = await admin.firestore().collection('admins').doc(callerEmail).get().catch(() => null);
-                if (adminDoc2 && adminDoc2.exists) isAdminAllowed = true;
-            }
-        }
-        if (!isAdminAllowed) return res.status(403).json({ error: 'Permission denied' });
-
-        const { messageId, updates } = req.body || {};
-        if (!messageId || !updates || typeof updates !== 'object') return res.status(400).json({ error: 'Missing messageId or updates' });
-
-        const allowedKeys = ['status', 'archived', 'adminReply'];
-        const payload = {};
-        Object.keys(updates).forEach(k => {
-            if (allowedKeys.includes(k)) payload[k] = updates[k];
-        });
-        if (Object.keys(payload).length === 0) return res.status(400).json({ error: 'No valid fields to update' });
-
-        payload.handledBy = callerEmail;
-        payload.handledAt = admin.firestore.FieldValue.serverTimestamp();
-
-        await admin.firestore().collection('messages').doc(messageId).set(payload, { merge: true });
-
-        await admin.firestore().collection('admin_logs').add({
-            action: 'MESSAGE_UPDATE',
-            messageId,
-            updates: payload,
-            performedBy: callerEmail,
-            timestamp: admin.firestore.FieldValue.serverTimestamp()
-        });
-
-        return res.json({ success: true });
-    } catch (err) {
-        console.error('updateMessage HTTP error:', err);
-        return res.status(500).json({ error: err.message || 'internal' });
-    }
+exports.onNewMessage = functions.firestore.document('messages/{messageId}').onCreate((snap, context) => notify(context.params.messageId));
+exports.notifyAdmin = functions.https.onCall(async (data, context) => {
+    await authorize(context);
+    if (!data?.messageId || data.messageId.includes('/')) throw new functions.https.HttpsError('invalid-argument', 'Message required.');
+    const message = await db.doc(`messages/${data.messageId}`).get();
+    if (!message.exists || message.data().userId !== context.auth.uid) throw new functions.https.HttpsError('permission-denied', 'Own messages only.');
+    return notify(data.messageId);
 });
-
-exports.updateMessageCors = functions.https.onRequest(updateMessageApp);
-
-// HTTP endpoint with CORS to support setUserRole via POST from browsers during local dev
-const setUserRoleApp = express();
-// Allow dev origins; adjust to your production origin as needed
-// Explicitly allow Authorization header and preflight methods so browsers can send idTokens
-setUserRoleApp.use((req, res, next) => {
-    res.header('Access-Control-Allow-Origin', req.get('Origin') || '*');
-    res.header('Access-Control-Allow-Methods', 'POST, OPTIONS');
-    res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
-    // Allow credentials if needed (cookies). Currently we use Bearer tokens.
-    res.header('Access-Control-Allow-Credentials', 'true');
-    // Cache preflight response for 1 hour
-    res.header('Access-Control-Max-Age', '3600');
-    // If this is a preflight request, respond immediately
-    if (req.method === 'OPTIONS') {
-        return res.status(204).send('');
-    }
-    next();
+exports.deleteUserProfile = functions.https.onCall(async (data, context) => {
+    const caller = await authorize(context);
+    if (!data?.userId || data.userId.includes('/') || data.userId === context.auth.uid) throw new functions.https.HttpsError('invalid-argument', 'Invalid user.');
+    const profile = await db.doc(`users/${data.userId}`).get();
+    if (!profile.exists) throw new functions.https.HttpsError('not-found', 'Profile not found.');
+    const email = profile.data().email;
+    const targetRole = await userRank(email);
+    if (ownerEmails.includes(email) || !(caller.rank === 'OWNER' || canRemove(caller.rank, targetRole))) throw new functions.https.HttpsError('permission-denied', 'Protected user.');
+    const batch = db.batch();
+    batch.delete(profile.ref); batch.delete(db.doc(`admins/${email}`)); batch.delete(db.doc(`moderators/${email}`));
+    batch.set(db.collection('admin_logs').doc(), { action: 'PROFILE_DELETE', targetEmail: email, performedBy: caller.email, timestamp: stamp() });
+    await batch.commit(); return { success: true };
 });
-setUserRoleApp.use(express.json());
-
-// Simple health endpoint to verify CORS and auth flow quickly
-setUserRoleApp.get('/_health', (req, res) => {
-    res.json({ ok: true, service: 'setUserRoleCors' });
-});
-
-setUserRoleApp.post('/', async (req, res) => {
-    try {
-        // Expect Authorization: Bearer <idToken>
-        const authHeader = req.get('Authorization') || req.get('authorization');
-        if (!authHeader) return res.status(401).json({ error: 'Missing Authorization header' });
-        const parts = authHeader.split(' ');
-        if (parts.length !== 2 || parts[0] !== 'Bearer') return res.status(401).json({ error: 'Invalid Authorization header' });
-        const idToken = parts[1];
-
-        const decoded = await admin.auth().verifyIdToken(idToken).catch(() => null);
-        if (!decoded || !decoded.email) return res.status(401).json({ error: 'Invalid token' });
-
-        const callerEmail = String(decoded.email).toLowerCase();
-        const allowedOwners = ['ag.aliengamerz@gmail.com', 'hamza.datashare@gmail.com'];
-
-        // Permission check (owners or admins)
-        let isAllowed = false;
-        if (callerEmail && allowedOwners.includes(callerEmail)) isAllowed = true;
-        if (!isAllowed) {
-            const adminDoc = await admin.firestore().collection('admins').doc(callerEmail).get().catch(() => null);
-            if (adminDoc && adminDoc.exists && adminDoc.data() && adminDoc.data().isSuperAdmin) isAllowed = true;
-            if (!isAllowed) {
-                const adminDoc2 = await admin.firestore().collection('admins').doc(callerEmail).get().catch(() => null);
-                if (adminDoc2 && adminDoc2.exists) isAllowed = true;
-            }
-        }
-        if (!isAllowed) return res.status(403).json({ error: 'Permission denied' });
-
-        const { targetEmail, role } = req.body || {};
-        if (!targetEmail || !role) return res.status(400).json({ error: 'Missing targetEmail or role' });
-
-        const normalizedEmail = String(targetEmail).toLowerCase().trim();
-        const firestore = admin.firestore();
-
-        // Find existing user doc by email
-        const usersQuery = await firestore.collection('users').where('email', '==', normalizedEmail).get();
-        let userId = null;
-        if (usersQuery.empty) {
-            const newUserRef = firestore.collection('users').doc();
-            userId = newUserRef.id;
-            await newUserRef.set({
-                email: normalizedEmail,
-                role: role,
-                createdAt: admin.firestore.FieldValue.serverTimestamp(),
-                createdBy: callerEmail,
-                updatedAt: admin.firestore.FieldValue.serverTimestamp(),
-                updatedBy: callerEmail
-            });
-        } else {
-            userId = usersQuery.docs[0].id;
-            await firestore.collection('users').doc(userId).set({ role: role, updatedAt: admin.firestore.FieldValue.serverTimestamp(), updatedBy: callerEmail }, { merge: true });
-        }
-
-        // Handle special collections
-        if (role === 'MODERATOR') {
-            await firestore.collection('moderators').doc(normalizedEmail).set({
-                email: normalizedEmail,
-                addedBy: callerEmail,
-                addedAt: admin.firestore.FieldValue.serverTimestamp(),
-                userId: userId
-            });
-        } else if (['ADMIN', 'SUPER_ADMIN'].includes(role)) {
-            await firestore.collection('admins').doc(normalizedEmail).set({
-                email: normalizedEmail,
-                isSuperAdmin: role === 'SUPER_ADMIN',
-                addedBy: callerEmail,
-                addedAt: admin.firestore.FieldValue.serverTimestamp()
-            });
-        }
-
-        // Log action
-        await firestore.collection('admin_logs').add({
-            action: 'ROLE_CHANGE',
-            targetEmail: normalizedEmail,
-            newRole: role,
-            performedBy: callerEmail,
-            timestamp: admin.firestore.FieldValue.serverTimestamp()
-        });
-
-        return res.json({ success: true });
-    } catch (err) {
-        console.error('setUserRole HTTP error:', err);
-        return res.status(500).json({ error: err.message || 'internal' });
-    }
-});
-
-exports.setUserRoleCors = functions.https.onRequest(setUserRoleApp);
-=======
->>>>>>> 73f62c93d43060085308101d24f0cd6dbf5b4002
-=======
->>>>>>> 73f62c93d43060085308101d24f0cd6dbf5b4002
-=======
->>>>>>> 73f62c93d43060085308101d24f0cd6dbf5b4002

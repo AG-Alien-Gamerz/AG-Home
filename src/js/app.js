@@ -1,498 +1,156 @@
-// Import Firebase services
 import { auth } from './firebase-config.js';
-import {
-    signInWithEmailAndPassword,
-    signInWithPopup,
-    GoogleAuthProvider,
-    GithubAuthProvider,
-    FacebookAuthProvider,
-    OAuthProvider,
-    signInAnonymously,
-    signInWithPhoneNumber,
-    RecaptchaVerifier,
-    signOut,
-    createUserWithEmailAndPassword
-} from 'firebase/auth';
-import {
-    facebookProvider,
-    yahooProvider
-} from './firebase.js';
-import { doc, setDoc, deleteDoc } from 'firebase/firestore';
-import { db } from './firebase.js';
-import { initTheme, setTheme, updateActiveTheme, updateActiveLanguage, setLanguage } from './theme.js';
-import { initLocalization } from './localization.js';
+import { createUserWithEmailAndPassword, signInWithPopup, signInAnonymously,
+    RecaptchaVerifier, onAuthStateChanged, getMultiFactorResolver,
+    TotpMultiFactorGenerator, PhoneAuthProvider, PhoneMultiFactorGenerator, reload, signOut } from 'firebase/auth';
+import { googleProvider, githubProvider, facebookProvider, yahooProvider } from './firebase.js';
+import { initTheme } from './theme.js';
+import { initLocalization, t } from './localization.js';
+import { validateSignup, requiresEmailVerification } from './auth-validation.js';
+import { saveProfile, requestReset, authError, pageURL, rejectUnverifiedSession, setAuthLanguage, signInWithIdentifier } from './auth-service.js';
+import { initPhoneAuth } from './phone-auth.js';
+import { busy, toast, initModals, initValidation } from './ui.js';
+import { initSettings } from './settings.js';
+import { initCharacter, initPasswordInteractions } from './character.js';
 
-console.log("App.js loaded");
-
-// Auth providers
-const googleProvider = new GoogleAuthProvider();
-const githubProvider = new GithubAuthProvider();
-
-// Global variable for phone confirmation
-let confirmationResult = null;
-let recaptchaVerifier = null;
-
-// Get DOM elements
-const loginForm = document.getElementById('login');
-const googleLoginBtn = document.getElementById('googleLogin');
-const githubLoginBtn = document.getElementById('githubLogin');
-const facebookLoginBtn = document.getElementById('facebookLogin');
-const yahooLoginBtn = document.getElementById('yahooLogin');
-const phoneLoginBtn = document.getElementById('phoneLogin');
-const guestLoginBtn = document.getElementById('guestLogin');
-const logoutBtn = document.getElementById('logoutBtn');
-
-// Signup buttons
-const googleSignupBtn = document.getElementById('googleSignup');
-const githubSignupBtn = document.getElementById('githubSignup');
-const facebookSignupBtn = document.getElementById('facebookSignup');
-const yahooSignupBtn = document.getElementById('yahooSignup');
-const phoneSignupBtn = document.getElementById('phoneSignup');
-const guestSignupBtn = document.getElementById('guestSignup');
-
-// Get additional DOM elements
-const showSignupBtn = document.getElementById('showSignup');
-const showLoginBtn = document.getElementById('showLogin');
-const signupForm = document.getElementById('signup');
-
-// Phone login modal elements
-const phoneLoginModal = document.getElementById('phoneLoginModal');
-const closePhoneModal = document.getElementById('closePhoneModal');
-const sendPhoneOTPBtn = document.getElementById('sendPhoneOTPBtn');
-const verifyPhoneOTPBtn = document.getElementById('verifyPhoneOTPBtn');
-const backToPhoneBtn = document.getElementById('backToPhoneBtn');
-const phoneLoginStep1 = document.getElementById('phoneLoginStep1');
-const phoneLoginStep2 = document.getElementById('phoneLoginStep2');
-const phoneNumberInput = document.getElementById('phoneNumber');
-const otpCodeInput = document.getElementById('otpCode');
-
-// Settings handlers
-const settingsBtn = document.getElementById('settingsBtn');
-const settingsModal = document.getElementById('settingsModal');
-const closeSettings = document.getElementById('closeSettings');
-const themeButtons = document.querySelectorAll('.theme-btn');
-const languageButtons = document.querySelectorAll('.language-btn');
-
-// Initialize shared theme behavior
-try { initTheme(); } catch (e) { console.warn('[app] initTheme failed', e); }
-try { initLocalization(); } catch (e) { console.warn('[app] initLocalization failed', e); }
-
-// Settings event listeners
-if (settingsBtn) settingsBtn.addEventListener('click', () => {
-    settingsModal.classList.remove('hidden');
-    try { updateActiveTheme(document.body.getAttribute('data-theme')); } catch (e) { console.warn(e); }
-    try { 
-        const currentLang = localStorage.getItem('language') || 'en';
-        updateActiveLanguage(currentLang); 
-    } catch (e) { console.warn(e); }
+initTheme(); initLocalization(); initSettings(); initModals(); initCharacter(); initPasswordInteractions();
+initValidation();
+let authenticating = false, mfaResolver = null, mfaVerificationId = null;
+const byId = id => document.getElementById(id);
+function panel(id) {
+    document.querySelector('.auth-container-wrapper').classList.toggle('hidden', ['resetPanel', 'mfaPanel'].includes(id));
+    for (const name of ['loginForm', 'signupForm', 'resetPanel', 'mfaPanel']) byId(name)?.classList.toggle('hidden', name !== id);
+    const visible = byId(id); visible?.classList.remove('panel-enter'); void visible?.offsetWidth; visible?.classList.add('panel-enter');
+    byId(id)?.querySelector('input, button')?.focus();
+}
+byId('showSignup').onclick = () => panel('signupForm');
+byId('showLogin').onclick = () => panel('loginForm');
+byId('showReset').onclick = () => panel('resetPanel');
+byId('resetBack').onclick = () => panel('loginForm');
+byId('mfaBack').onclick = () => { mfaResolver = null; panel('loginForm'); };
+function goHome() { sessionStorage.removeItem('ag.pendingVerification'); location.replace(pageURL('home.html')); }
+function showVerification() {
+    let pending;
+    try { pending = JSON.parse(sessionStorage.getItem('ag.pendingVerification') || 'null'); } catch {}
+    if (!pending?.email) return;
+    panel('loginForm'); byId('loginEmail').value = pending.email;
+    byId('verificationNotice').classList.remove('hidden');
+    const message = byId('verificationMessage'); message.dataset.i18n = pending.sent ? 'auth.verificationSent' : 'auth.unverified'; message.textContent = t(message.dataset.i18n);
+}
+onAuthStateChanged(auth, async user => {
+    if (authenticating) return;
+    if (user?.email && user.emailVerified) { goHome(); return; }
+    if (requiresEmailVerification(user)) {
+        authenticating = true;
+        try { await rejectUnverifiedSession(user); } catch (error) { toast(authError(error), 'error'); }
+        finally { authenticating = false; }
+    }
+    showVerification(); document.documentElement.classList.remove('auth-pending');
 });
-
-if (closeSettings) closeSettings.addEventListener('click', () => settingsModal.classList.add('hidden'));
-
-if (themeButtons && themeButtons.forEach) {
-    themeButtons.forEach(btn => btn.addEventListener('click', () => {
-        try { setTheme(btn.getAttribute('data-theme')); } catch (e) { console.warn(e); }
+async function finishSignIn(user, resend = false) {
+    await reload(user);
+    if (requiresEmailVerification(user)) {
+        try { await rejectUnverifiedSession(user, { sendEmail: resend }); }
+        finally { byId('loginPassword').value = ''; showVerification(); document.documentElement.classList.remove('auth-pending'); }
+        return;
+    }
+    // Social accounts require an email. Guest/phone sessions retain public browsing,
+    // but can never bypass verified-email access to the authenticated Home.
+    if (!user.email && user.providerData.some(p => ['google.com', 'github.com', 'facebook.com', 'yahoo.com'].includes(p.providerId))) {
+        await signOut(auth); toast(t('auth.emailUnavailable'), 'error'); return;
+    }
+    if (!user.email) { location.replace(pageURL('products.html')); return; }
+    await user.getIdToken(true); goHome();
+}
+async function authenticate(task, { resend = false } = {}) {
+    if (authenticating) return;
+    authenticating = true; setAuthLanguage();
+    try { const result = await task(); await finishSignIn(result.user, resend); }
+    catch (error) {
+        if (requiresEmailVerification(auth.currentUser)) {
+            try { await rejectUnverifiedSession(auth.currentUser); } catch { /* Keep the original localized sign-in error. */ }
+            showVerification();
+        }
+        await handleError(error);
+    }
+    finally { authenticating = false; }
+}
+async function handleError(error) {
+    if (error.code === 'auth/multi-factor-auth-required') {
+        mfaResolver = getMultiFactorResolver(auth, error);
+        const select = byId('mfaFactor'); select.replaceChildren();
+        mfaResolver.hints.forEach((hint, index) => select.add(new Option(hint.displayName || hint.factorId, String(index))));
+        panel('mfaPanel');
+        byId('mfaSend').hidden = mfaResolver.hints[0]?.factorId !== PhoneMultiFactorGenerator.FACTOR_ID;
+    } else toast(authError(error), 'error');
+}
+byId('login').onsubmit = event => {
+    event.preventDefault();
+    busy(event.submitter, async () => {
+        await authenticate(() => signInWithIdentifier(byId('loginEmail').value, byId('loginPassword').value));
+    });
+};
+byId('dob').max = new Date().toLocaleDateString('en-CA');
+byId('signup').onsubmit = event => {
+    event.preventDefault();
+    const data = Object.fromEntries(new FormData(event.target));
+    const error = validateSignup(data);
+    if (error) { toast(t(error), 'error'); return; }
+    busy(event.submitter, async () => {
+        if (authenticating) return;
+        authenticating = true;
+        try {
+            const { user } = await createUserWithEmailAndPassword(auth, data.email.trim(), data.password);
+            // Save the profile before signing out; verification is required before entering Home.
+            try { await saveProfile(user, data); } catch { toast(t('msg.error'), 'error'); }
+            try { await rejectUnverifiedSession(user, {sendEmail:true}); } catch (error) { toast(authError(error), 'error'); }
+            byId('signupPassword').value = ''; byId('signupConfirm').value = '';
+            window.dispatchEvent(new CustomEvent('characterReaction', { detail: { state: 'celebrate' } }));
+            showVerification();
+        } catch (error) { await handleError(error); }
+        finally { authenticating = false; }
+    });
+};
+for (const [name, provider] of Object.entries({ google: googleProvider, github: githubProvider, facebook: facebookProvider, yahoo: yahooProvider })) {
+    for (const suffix of ['Login', 'Signup']) byId(name + suffix)?.addEventListener('click', event => busy(event.currentTarget, async () => {
+        await authenticate(() => signInWithPopup(auth, provider), {resend:true});
     }));
 }
-
-// Language button listeners
-if (languageButtons && languageButtons.forEach) {
-    languageButtons.forEach(btn => btn.addEventListener('click', () => {
-        try { 
-            const lang = btn.getAttribute('data-language');
-            setLanguage(lang);
-            updateActiveLanguage(lang);
-        } catch (e) { console.warn(e); }
+for (const suffix of ['Login', 'Signup']) {
+    byId('guest' + suffix)?.addEventListener('click', event => busy(event.currentTarget, async () => {
+        await authenticate(() => signInAnonymously(auth));
     }));
 }
-
-// Close modal when clicking outside
-settingsModal.addEventListener('click', (e) => {
-    if (e.target === settingsModal) {
-        settingsModal.classList.add('hidden');
-    }
-});
-
-// Navigation between login and signup with transitions
-function switchToSignup() {
-    const loginForm = document.getElementById('loginForm');
-    const signupForm = document.getElementById('signupForm');
-
-    loginForm.classList.add('slide-out-left');
-    signupForm.classList.remove('hidden');
-
-    // Small delay to trigger transition
-    setTimeout(() => {
-        signupForm.classList.remove('slide-out-right');
-    }, 10);
-
-    // Hide login form after animation
-    setTimeout(() => {
-        loginForm.classList.add('hidden');
-    }, 500);
-}
-
-function switchToLogin() {
-    const loginForm = document.getElementById('loginForm');
-    const signupForm = document.getElementById('signupForm');
-
-    signupForm.classList.add('slide-out-right');
-    loginForm.classList.remove('hidden');
-
-    // Small delay to trigger transition
-    setTimeout(() => {
-        loginForm.classList.remove('slide-out-left');
-    }, 10);
-
-    // Hide signup form after animation
-    setTimeout(() => {
-        signupForm.classList.add('hidden');
-    }, 500);
-}
-
-// Update event listeners
-showSignupBtn.addEventListener('click', switchToSignup);
-showLoginBtn.addEventListener('click', switchToLogin);
-
-// Get base URL for GitHub Pages compatibility
-function getBaseUrl() {
-    return window.location.pathname.startsWith('/AG-Home/') ? '/AG-Home' : '';
-}
-
-// Add redirect function
-function redirectToHome() {
-    const baseUrl = getBaseUrl();
-    window.location.href = baseUrl + '/home.html';
-}
-
-// Handle login form submission
-loginForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = loginForm.querySelector('input[type="email"]').value;
-    const password = loginForm.querySelector('input[type="password"]').value;
-
+initPhoneAuth({authenticate, handleError});
+byId('resendVerification').onclick = event => {
+    if (!byId('login').reportValidity()) return;
+    busy(event.currentTarget, () => authenticate(() => signInWithIdentifier(byId('loginEmail').value, byId('loginPassword').value), {resend:true}));
+};
+byId('resetForm').onsubmit = event => {
+    event.preventDefault();
+    busy(event.submitter, async () => {
+        try { await requestReset(byId('resetEmail').value); toast(t('auth.resetSent')); byId('resetEmail').value = ''; }
+        catch (error) { toast(authError(error), 'error'); }
+    });
+};
+byId('mfaFactor').onchange = () => { mfaVerificationId = null; byId('mfaSend').hidden = mfaResolver?.hints[Number(byId('mfaFactor').value)]?.factorId !== PhoneMultiFactorGenerator.FACTOR_ID; };
+byId('mfaSend').onclick = event => busy(event.currentTarget, async () => {
     try {
-        await signInWithEmailAndPassword(auth, email, password);
-        // Show loader on next page load once (zero-delay)
-        try { sessionStorage.setItem('showLoader', '1'); } catch (e) { /* ignore */ }
-        redirectToHome();
-    } catch (error) {
-        console.error('Login error:', error);
-        alert('Login failed: ' + error.message);
-    }
+        if (!mfaResolver) return;
+        const verifier = new RecaptchaVerifier(auth, 'mfaRecaptcha', { size: 'normal' });
+        try { mfaVerificationId = await new PhoneAuthProvider(auth).verifyPhoneNumber({ multiFactorHint: mfaResolver.hints[Number(byId('mfaFactor').value)], session: mfaResolver.session }, verifier); }
+        finally { verifier.clear(); }
+        toast(t('msg.success'));
+    } catch (error) { await handleError(error); }
 });
-
-// Handle signup form submission
-signupForm.addEventListener('submit', async (e) => {
-    e.preventDefault();
-    const email = signupForm.querySelector('input[type="email"]').value;
-    const password = signupForm.querySelector('input[type="password"]').value;
-
-    try {
-        await createUserWithEmailAndPassword(auth, email, password);
-        try { sessionStorage.setItem('showLoader', '1'); } catch (e) { /* ignore */ }
-        redirectToHome();
-    } catch (error) {
-        console.error('Signup error:', error);
-        alert('Signup failed: ' + error.message);
-    }
-});
-
-// Handle Google login
-googleLoginBtn.addEventListener('click', async () => {
-    try {
-        await signInWithPopup(auth, googleProvider);
-        try { sessionStorage.setItem('showLoader', '1'); } catch (e) { /* ignore */ }
-        redirectToHome();
-    } catch (error) {
-        console.error('Google login error:', error);
-        alert('Google login failed: ' + error.message);
-    }
-});
-
-// Handle GitHub login
-githubLoginBtn.addEventListener('click', async () => {
-    try {
-        await signInWithPopup(auth, githubProvider);
-        try { sessionStorage.setItem('showLoader', '1'); } catch (e) { /* ignore */ }
-        redirectToHome();
-    } catch (error) {
-        console.error('GitHub login error:', error);
-        alert('GitHub login failed: ' + error.message);
-    }
-});
-
-// Handle Facebook login
-if (facebookLoginBtn) {
-    facebookLoginBtn.addEventListener('click', async () => {
+byId('mfaForm').onsubmit = event => {
+    event.preventDefault(); busy(event.submitter, async () => {
         try {
-            const facebookAuth = new FacebookAuthProvider();
-            facebookAuth.addScope('email');
-            facebookAuth.setCustomParameters({ 'display': 'popup' });
-            await signInWithPopup(auth, facebookAuth);
-            try { sessionStorage.setItem('showLoader', '1'); } catch (e) { /* ignore */ }
-            redirectToHome();
-        } catch (error) {
-            console.error('Facebook login error:', error);
-            alert('Facebook login failed: ' + error.message);
-        }
+            const hint = mfaResolver.hints[Number(byId('mfaFactor').value)], code = byId('mfaCode').value;
+            if (!/^\d{6}$/.test(code)) { toast(t('auth.invalidCode'), 'error'); return; }
+            const assertion = hint.factorId === TotpMultiFactorGenerator.FACTOR_ID
+                ? TotpMultiFactorGenerator.assertionForSignIn(hint.uid, code)
+                : PhoneMultiFactorGenerator.assertion(PhoneAuthProvider.credential(mfaVerificationId, code));
+            await authenticate(() => mfaResolver.resolveSignIn(assertion)); byId('mfaCode').value = '';
+        } catch (error) { await handleError(error); }
     });
-}
-
-// Handle Yahoo login
-if (yahooLoginBtn) {
-    yahooLoginBtn.addEventListener('click', async () => {
-        try {
-            await signInWithPopup(auth, yahooProvider);
-            try { sessionStorage.setItem('showLoader', '1'); } catch (e) { /* ignore */ }
-            redirectToHome();
-        } catch (error) {
-            console.error('Yahoo login error:', error);
-            alert('Yahoo login failed: ' + error.message);
-        }
-    });
-}
-
-// Handle Phone login
-if (phoneLoginBtn) {
-    phoneLoginBtn.addEventListener('click', () => {
-        phoneLoginModal.classList.remove('hidden');
-        initRecaptcha();
-    });
-}
-
-// Handle Guest login
-if (guestLoginBtn) {
-    guestLoginBtn.addEventListener('click', async () => {
-        try {
-            await signInAnonymously(auth);
-            try { sessionStorage.setItem('showLoader', '1'); } catch (e) { /* ignore */ }
-            redirectToHome();
-        } catch (error) {
-            console.error('Guest login error:', error);
-            alert('Guest login failed: ' + error.message);
-        }
-    });
-}
-
-// Signup with new providers
-if (facebookSignupBtn) {
-    facebookSignupBtn.addEventListener('click', async () => {
-        try {
-            const facebookAuth = new FacebookAuthProvider();
-            facebookAuth.addScope('email');
-            facebookAuth.setCustomParameters({ 'display': 'popup' });
-            await signInWithPopup(auth, facebookAuth);
-            try { sessionStorage.setItem('showLoader', '1'); } catch (e) { /* ignore */ }
-            redirectToHome();
-        } catch (error) {
-            console.error('Facebook signup error:', error);
-            alert('Facebook signup failed: ' + error.message);
-        }
-    });
-}
-
-if (yahooSignupBtn) {
-    yahooSignupBtn.addEventListener('click', async () => {
-        try {
-            await signInWithPopup(auth, yahooProvider);
-            try { sessionStorage.setItem('showLoader', '1'); } catch (e) { /* ignore */ }
-            redirectToHome();
-        } catch (error) {
-            console.error('Yahoo signup error:', error);
-            alert('Yahoo signup failed: ' + error.message);
-        }
-    });
-}
-
-if (phoneSignupBtn) {
-    phoneSignupBtn.addEventListener('click', () => {
-        phoneLoginModal.classList.remove('hidden');
-        initRecaptcha();
-    });
-}
-
-if (guestSignupBtn) {
-    guestSignupBtn.addEventListener('click', async () => {
-        try {
-            await signInAnonymously(auth);
-            try { sessionStorage.setItem('showLoader', '1'); } catch (e) { /* ignore */ }
-            redirectToHome();
-        } catch (error) {
-            console.error('Guest signup error:', error);
-            alert('Guest signup failed: ' + error.message);
-        }
-    });
-}
-
-// Handle logout
-logoutBtn.addEventListener('click', async () => {
-    try {
-        await signOut(auth);
-        // Show login form after logout
-        document.getElementById('loginForm').classList.remove('hidden');
-        document.getElementById('userDisplay').textContent = '';
-        document.getElementById('logoutBtn').classList.add('hidden');
-    } catch (error) {
-        console.error('Logout error:', error);
-        alert('Logout failed: ' + error.message);
-    }
-});
-
-// Listen for auth state changes
-auth.onAuthStateChanged((user) => {
-    if (user) {
-        // User is signed in
-        document.getElementById('loginForm').classList.add('hidden');
-        document.getElementById('userDisplay').textContent = user.email || user.uid;
-        document.getElementById('logoutBtn').classList.remove('hidden');
-    } else {
-        // User is signed out
-        document.getElementById('loginForm').classList.remove('hidden');
-        document.getElementById('userDisplay').textContent = '';
-        document.getElementById('logoutBtn').classList.add('hidden');
-    }
-});
-
-// Phone login modal handlers
-if (closePhoneModal) {
-    closePhoneModal.addEventListener('click', () => {
-        phoneLoginModal.classList.add('hidden');
-        resetPhoneLoginModal();
-    });
-}
-
-if (phoneLoginModal) {
-    phoneLoginModal.addEventListener('click', (e) => {
-        if (e.target === phoneLoginModal) {
-            phoneLoginModal.classList.add('hidden');
-            resetPhoneLoginModal();
-        }
-    });
-}
-
-// Initialize reCAPTCHA
-function initRecaptcha() {
-    if (!recaptchaVerifier) {
-        recaptchaVerifier = new RecaptchaVerifier(auth, 'recaptcha-container', {
-            'size': 'normal',
-            'callback': (token) => {
-                console.log('reCAPTCHA verified');
-            },
-            'expired-callback': () => {
-                console.log('reCAPTCHA expired');
-            }
-        });
-    }
-}
-
-// Send OTP
-if (sendPhoneOTPBtn) {
-    sendPhoneOTPBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const phoneNumber = phoneNumberInput.value.trim();
-
-        if (!phoneNumber) {
-            alert('Please enter a phone number');
-            return;
-        }
-
-        try {
-            sendPhoneOTPBtn.disabled = true;
-            sendPhoneOTPBtn.textContent = 'Sending...';
-
-            // Ensure reCAPTCHA is initialized
-            if (!recaptchaVerifier) {
-                initRecaptcha();
-            }
-
-            confirmationResult = await signInWithPhoneNumber(
-                auth,
-                phoneNumber,
-                recaptchaVerifier
-            );
-
-            // Show OTP input step
-            phoneLoginStep1.classList.add('hidden');
-            phoneLoginStep2.classList.remove('hidden');
-
-            alert('OTP sent to ' + phoneNumber);
-        } catch (error) {
-            console.error('Error sending OTP:', error);
-            if (error.code === 'auth/invalid-phone-number') {
-                alert('Invalid phone number. Please include country code (e.g., +1)');
-            } else if (error.code === 'auth/too-many-requests') {
-                alert('Too many requests. Please try again later.');
-            } else {
-                alert('Error sending OTP: ' + error.message);
-            }
-            // Reset reCAPTCHA on error
-            if (recaptchaVerifier) {
-                recaptchaVerifier.clear();
-                recaptchaVerifier = null;
-            }
-        } finally {
-            sendPhoneOTPBtn.disabled = false;
-            sendPhoneOTPBtn.textContent = 'Send OTP';
-        }
-    });
-}
-
-// Verify OTP
-if (verifyPhoneOTPBtn) {
-    verifyPhoneOTPBtn.addEventListener('click', async (e) => {
-        e.preventDefault();
-        const otpCode = otpCodeInput.value.trim();
-
-        if (!otpCode || otpCode.length !== 6) {
-            alert('Please enter a valid 6-digit code');
-            return;
-        }
-
-        if (!confirmationResult) {
-            alert('OTP not sent. Please try again.');
-            return;
-        }
-
-        try {
-            verifyPhoneOTPBtn.disabled = true;
-            verifyPhoneOTPBtn.textContent = 'Verifying...';
-
-            await confirmationResult.confirm(otpCode);
-
-            // Close modal and redirect
-            phoneLoginModal.classList.add('hidden');
-            resetPhoneLoginModal();
-            try { sessionStorage.setItem('showLoader', '1'); } catch (e) { /* ignore */ }
-            redirectToHome();
-        } catch (error) {
-            console.error('Error verifying OTP:', error);
-            if (error.code === 'auth/invalid-verification-code') {
-                alert('Invalid verification code. Please try again.');
-                otpCodeInput.value = '';
-            } else {
-                alert('Verification failed: ' + error.message);
-            }
-        } finally {
-            verifyPhoneOTPBtn.disabled = false;
-            verifyPhoneOTPBtn.textContent = 'Verify & Login';
-        }
-    });
-}
-
-// Back to phone input
-if (backToPhoneBtn) {
-    backToPhoneBtn.addEventListener('click', (e) => {
-        e.preventDefault();
-        resetPhoneLoginModal();
-    });
-}
-
-// Reset phone login modal
-function resetPhoneLoginModal() {
-    phoneLoginStep1.classList.remove('hidden');
-    phoneLoginStep2.classList.add('hidden');
-    phoneNumberInput.value = '';
-    otpCodeInput.value = '';
-    confirmationResult = null;
-}
+};

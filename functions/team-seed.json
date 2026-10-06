@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "revision": 0,
+  "nodes": [
+    {"id":"ag","name":"AG","type":"root","parentId":null},
+    {"id":"frontend","name":"Frontend","type":"department","parentId":"ag"},
+    {"id":"frontend-team","name":"Frontend Team","type":"team","parentId":"frontend"},
+    {"id":"backend","name":"Backend","type":"department","parentId":"ag"},
+    {"id":"design","name":"Design","type":"department","parentId":"ag"}
+  ],
+  "members": [{
+    "id":"muhammad-hamza-sabir",
+    "name":"Muhammad Hamza Sabir",
+    "role":"Lead Developer & Software Engineer",
+    "startDate":"2024-05-01",
+    "endDate":null,
+    "avatar":"/AG-Home/team/muhammad-hamza-sabir.png",
+    "portfolio":"https://ll-hamza.github.io/Portfolio/",
+    "bio":"Muhammad Hamza Sabir is a software developer at AG, working across the design, development, and maintenance of AG’s digital products and platforms. His work covers frontend and backend development, UI/UX implementation, authentication systems, databases, APIs, security features, integrations, testing, deployment, and ongoing product improvements.\n\nHe has independently developed the codebase of every AG product created so far, taking projects from their initial concepts and prototypes to functional applications and production-ready systems. His work spans web applications, desktop software, browsers, productivity and security tools, AI-related projects, and experimental technologies developed under AG.",
+    "skills":["Software Development","Research & Innovation","Frontend & Backend","UI/UX","Security & Integrations","Testing & Deployment"],
+    "assignments":[{"nodeId":"frontend-team","startDate":"2024-05-01","endDate":null,"role":"Lead Developer & Software Engineer","pathIds":["ag","frontend","frontend-team"],"pathNames":["AG","Frontend","Frontend Team"]}]
+  }]
+}

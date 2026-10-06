@@ -1,6 +1,9 @@
 import { auth } from './firebase-config.js';
-import { getFirestore, collection, query, getDocs, addDoc, onSnapshot, orderBy, serverTimestamp } from 'firebase/firestore';
+import { getFirestore, collection, query, getDocs, getDoc, doc, addDoc, onSnapshot, orderBy, serverTimestamp } from 'firebase/firestore';
 import roleManager, { ROLES, OWNER_EMAILS } from './role-manager.js';
+import { t } from './localization.js';
+import { chatSenderName, isOwnChatMessage } from './chat-model.js';
+import { busy } from './ui.js';
 
 const db = getFirestore();
 
@@ -126,7 +129,7 @@ async function loadUsers() {
         for (const user of users) {
             const email = String(user.email || '').toLowerCase();
             if (!email) continue;
-            if (ownerEmails.has(email) || (user.role || '').toUpperCase() === ROLES.OWNER) {
+            if (ownerEmails.has(email)) {
                 owners.push(user);
             } else if (adminEmails.has(email)) {
                 // skip here; admins rendered from admins collection
@@ -144,7 +147,7 @@ async function loadUsers() {
             if (ownersListEl) ownersListEl.innerHTML += `
                 <div class="owner-item">
                     <div class="Owner-info">
-                        <div class="Owner-email">👑 ${email}</div>
+                        <div class="Owner-email">👑 ${escapeHtml(email)}</div>
                         <div class="Owner-meta">
                             <span class="owner">👑 Owner</span>
                             <span class="Owner-Add">Added by: System</span>
@@ -172,18 +175,18 @@ async function loadUsers() {
             if (superAdminsListEl) superAdminsListEl.innerHTML += `
                 <div class="super-admin-item">
                     <div class="super-admin-info">
-                        <div class="super-admin-email">${email}</div>
+                        <div class="super-admin-email">${escapeHtml(email)}</div>
                         <div class="super-admin-meta">
                         <span class="super-admin-type">
                             Super Admin
                         </span>
                             <span class="admin-date">Added: ${dateStr}</span>
-                            <span class="admin-by">by: ${sa.addedBy || 'N/A'}</span>
+                            <span class="admin-by">by: ${escapeHtml(sa.addedBy || 'N/A')}</span>
                         </div>
                     </div>
                     <div class="super-admin-actions">
-                        <button onclick="showRolePicker('${sa.id}','${email}','SUPER_ADMIN', this)" class="demote-btn">Change Role</button>
-                        <button onclick="removeSuperAdmin('${sa.id}')" class="remove-btn">Remove</button>
+                        <button onclick="showRolePicker(${inlineArg(sa.id)},${inlineArg((email))},'SUPER_ADMIN', this)" class="demote-btn">Change Role</button>
+                        <button onclick="removeSuperAdmin(${inlineArg(sa.id)})" class="remove-btn">Remove</button>
                     </div>
                 </div>`;
         }
@@ -197,16 +200,16 @@ async function loadUsers() {
             if (adminsListEl) adminsListEl.innerHTML += `
                 <div class="admin-item">
                     <div class="admin-info">
-                        <div class="admin-email">${email}</div>
+                        <div class="admin-email">${escapeHtml(email)}</div>
                         <div class="admin-meta">
                             <span class="admin-type regular">Admin</span>
                             <span class="admin-date">Added: ${dateStr}</span>
-                            <span class="admin-by">by: ${a.addedBy || 'N/A'}</span>
+                            <span class="admin-by">by: ${escapeHtml(a.addedBy || 'N/A')}</span>
                         </div>
                     </div>
                     <div class="admin-actions">
-                        <button onclick="showRolePicker('${a.id}','${email}','ADMIN', this)" class="role-btn">Change Role</button>
-                        <button onclick="removeAdmin('${a.id}')" class="remove-btn">Remove</button>
+                        <button onclick="showRolePicker(${inlineArg(a.id)},${inlineArg((email))},'ADMIN', this)" class="role-btn">Change Role</button>
+                        <button onclick="removeAdmin(${inlineArg(a.id)})" class="remove-btn">Remove</button>
                     </div>
                 </div>`;
         }
@@ -219,16 +222,16 @@ async function loadUsers() {
             if (moderatorsListEl) moderatorsListEl.innerHTML += `
                 <div class="moderator-item">
                     <div class="moderator-info">
-                        <div class="moderator-email">${email}</div>
+                        <div class="moderator-email">${escapeHtml(email)}</div>
                         <div class="moderator-meta">
                             <span class="moderator-type">Moderator</span>
                             <span class="moderator-date">Added: ${(window.formatDate || ((d) => 'N/A'))(addedDate)}</span>
-                            <span class="moderator-by">by: ${m.addedBy || 'N/A'}
+                            <span class="moderator-by">by: ${escapeHtml(m.addedBy || 'N/A')}
                         </div>
                     </div>
                     <div class="moderator-actions">
-                    <button onclick="showRolePicker('${m.id || m.email}', '${email}', 'MODERATOR', this)" class="promote-btn">Change Role</button>
-                        <button onclick="removeModerator('${m.id || m.email}')" class="remove-btn">Remove</button>
+                    <button onclick="showRolePicker(${inlineArg(m.id || m.email)}, ${inlineArg((email))}, 'MODERATOR', this)" class="promote-btn">Change Role</button>
+                        <button onclick="removeModerator(${inlineArg(m.id || m.email)})" class="remove-btn">Remove</button>
                     </div>
                 </div>`;
         }
@@ -236,7 +239,7 @@ async function loadUsers() {
         // Render remaining users
         if (usersListEl) usersListEl.innerHTML = '';
         for (const user of remainingUsers) {
-            const normalizedRole = (user.role || ROLES.USER).toUpperCase();
+            const normalizedRole = ROLES.USER; // Staff were already classified from authoritative membership records.
             let containerClass = 'user-item';
             switch (normalizedRole) { case ROLES.SUPER_ADMIN: containerClass = 'super-admin-item'; break; case ROLES.ADMIN: containerClass = 'admin-item'; break; case ROLES.MODERATOR: containerClass = 'moderator-item'; break; default: containerClass = 'user-item'; }
             const canManage = await roleManager.checkPermission(auth.currentUser, 'manage', normalizedRole);
@@ -244,7 +247,7 @@ async function loadUsers() {
             if (usersListEl) usersListEl.innerHTML += `
                 <div class="${containerClass}">
                     <div class="user-info">
-                        <div class="user-email">${user.email}</div>
+                        <div class="user-email">${escapeHtml(user.email)}</div>
                         <div class="user-meta">
                             <span class="user-role ${normalizedRole.toLowerCase()}">${normalizedRole}</span>
                             <span class="user-date">Joined: ${(window.formatDate || ((d) => 'N/A'))(user.createdAt)}</span>
@@ -252,8 +255,8 @@ async function loadUsers() {
                     </div>
                     ${showActions ? `
                         <div class="user-actions">
-                            <button onclick="showRolePicker('${user.id}','${user.email}','${normalizedRole}', this)" class="change-role-btn">Change Role</button>
-                            <button onclick="deleteUser('${user.id}')" class="delete-btn">Delete</button>
+                            <button onclick="showRolePicker(${inlineArg(user.id)},${inlineArg((user.email))},${inlineArg(normalizedRole)}, this)" class="change-role-btn">Change Role</button>
+                            <button onclick="deleteUser(${inlineArg(user.id)})" class="delete-btn">Delete</button>
                         </div>` : ''}
                 </div>`;
         }
@@ -270,39 +273,54 @@ async function loadUsers() {
 // Global chat
 // --------------------
 let _chatUnsub = null;
+let chatGeneration = 0;
+const chatProfiles = new Map();
+function senderProfile(uid) {
+    if (!uid || typeof uid !== 'string' || uid.includes('/')) return Promise.resolve({});
+    if (!chatProfiles.has(uid)) chatProfiles.set(uid, getDoc(doc(db, 'users', uid)).then(snapshot => snapshot.data() || {}).catch(() => ({})));
+    // Existing rules protect private profiles. Never broaden access for display names.
+    return chatProfiles.get(uid);
+}
 async function loadChats() {
     const chatsList = document.getElementById('chatsList');
     if (!chatsList) return;
 
     // cleanup old listener
     if (_chatUnsub) { _chatUnsub(); _chatUnsub = null; }
+    ++chatGeneration;
 
     try {
         const q = query(collection(db, 'global_chat'), orderBy('timestamp', 'asc'));
-        _chatUnsub = onSnapshot(q, (snapshot) => {
+        _chatUnsub = onSnapshot(q, async (snapshot) => {
+            const generation = ++chatGeneration;
+            const stickToBottom = !chatsList.children.length || chatsList.scrollHeight - chatsList.scrollTop - chatsList.clientHeight < 80;
+            const previousScroll = chatsList.scrollTop;
+            const messages = snapshot.docs.map(item => ({id:item.id, ...item.data()}));
+            const profiles = await Promise.all(messages.map(message => senderProfile(message.senderId)));
+            if (generation !== chatGeneration) return;
             chatsList.innerHTML = '';
             if (snapshot.empty) {
-                chatsList.innerHTML = '<p class="no-messages">No messages yet</p>';
+                chatsList.innerHTML = `<p class="no-messages" data-i18n="admin.noData">${t('admin.noData')}</p>`;
                 return;
             }
-            snapshot.forEach(docSnap => {
-                const m = docSnap.data();
+            messages.forEach((m, index) => {
                 const time = (window.formatDate || ((d) => 'N/A'))(m.timestamp);
-                const sender = m.senderName || m.senderEmail || 'Anonymous';
+                const sender = chatSenderName(m, profiles[index], t('admin.users'));
                 const text = m.text || '';
                 const msgEl = document.createElement('div');
-                msgEl.className = 'chat-message';
+                msgEl.className = `chat-message ${isOwnChatMessage(m, auth.currentUser) ? 'is-own' : 'is-other'}`;
+                msgEl.dataset.messageId = m.id;
                 msgEl.innerHTML = `
-                    <div class="chat-meta"><strong class="chat-sender">${sender}</strong> <span class="chat-time">${time}</span></div>
-                    <div class="chat-text">${escapeHtml(text)}</div>
+                    <div class="chat-meta"><strong class="chat-sender" dir="auto">${escapeHtml(sender)}</strong> <span class="chat-time">${escapeHtml(time)}</span></div>
+                    <div class="chat-text" dir="auto">${escapeHtml(text)}</div>
                 `;
                 chatsList.appendChild(msgEl);
             });
             // scroll to bottom
-            chatsList.scrollTop = chatsList.scrollHeight;
+            chatsList.scrollTop = stickToBottom || isOwnChatMessage(messages.at(-1) || {}, auth.currentUser) ? chatsList.scrollHeight : previousScroll;
         }, (err) => {
             console.error('Error loading chats:', err);
-            chatsList.innerHTML = '<p class="error">Error loading chat messages</p>';
+            chatsList.innerHTML = `<p class="error" data-i18n="msg.error">${t('msg.error')}</p>`;
         });
     } catch (err) {
         console.error('Error in loadChats:', err);
@@ -313,23 +331,25 @@ function setupChatHandlers() {
     const form = document.getElementById('chatForm');
     const input = document.getElementById('chatInput');
     if (!form || !input) return;
+    input.maxLength = 5000;
     form.addEventListener('submit', async (e) => {
         e.preventDefault();
         const text = input.value.trim();
         if (!text) return;
         if (!auth.currentUser) { alert('You must be signed in to chat'); return; }
-        try {
+        await busy(form.querySelector('button[type="submit"]'), async () => { try {
+            const profile = (await getDoc(doc(db, 'users', auth.currentUser.uid))).data() || {};
             await addDoc(collection(db, 'global_chat'), {
                 text,
                 senderId: auth.currentUser.uid,
-                senderName: auth.currentUser.email,
+                senderName: chatSenderName({}, {...profile, displayName:auth.currentUser.displayName, email:auth.currentUser.email}, t('admin.users')),
                 timestamp: serverTimestamp()
             });
             input.value = '';
         } catch (err) {
             console.error('Error sending chat message:', err);
             alert(err.message || 'Failed to send message');
-        }
+        } });
     });
 }
 
@@ -369,7 +389,8 @@ async function showRolePicker(userId, userEmail, currentRole, buttonEl) {
         // Build options with enabled/disabled state based on permissionChecks and special-case rules
         roles.forEach((r, idx) => {
             const opt = document.createElement('option');
-            opt.value = r; opt.textContent = r.replace('_', ' ');
+            const roleKeys = { OWNER:'admin.owner', SUPER_ADMIN:'admin.super', ADMIN:'admin.administrators', MODERATOR:'admin.moderators', USER:'admin.users' };
+            opt.value = r; opt.textContent = t(roleKeys[r]); opt.dataset.i18n = roleKeys[r];
             if (r === currentRole) opt.selected = true;
 
             let allowed = permissionChecks[idx];
@@ -387,11 +408,11 @@ async function showRolePicker(userId, userEmail, currentRole, buttonEl) {
             select.appendChild(opt);
         });
 
-        const confirmBtn = document.createElement('button'); confirmBtn.textContent = 'Set'; confirmBtn.className = 'confirm-role-btn'; confirmBtn.style.marginLeft = '8px';
-        const cancelBtn = document.createElement('button'); cancelBtn.textContent = 'Cancel'; cancelBtn.className = 'cancel-role-btn'; cancelBtn.style.marginLeft = '6px';
+        const confirmBtn = document.createElement('button'); confirmBtn.textContent = t('btn.submit'); confirmBtn.dataset.i18n = 'btn.submit'; confirmBtn.className = 'confirm-role-btn'; confirmBtn.style.marginInlineStart = '8px';
+        const cancelBtn = document.createElement('button'); cancelBtn.textContent = t('btn.cancel'); cancelBtn.dataset.i18n = 'btn.cancel'; cancelBtn.className = 'cancel-role-btn'; cancelBtn.style.marginInlineStart = '6px';
 
         picker.appendChild(select); picker.appendChild(confirmBtn); picker.appendChild(cancelBtn); document.body.appendChild(picker);
-        const rect = buttonEl.getBoundingClientRect(); picker.style.top = `${rect.bottom + window.scrollY + 6}px`; picker.style.left = `${rect.left + window.scrollX}px`;
+        const rect = buttonEl.getBoundingClientRect(); picker.style.top = `${rect.bottom + window.scrollY + 6}px`; picker.style.left = `${Math.max(8, Math.min(rect.left, innerWidth - picker.offsetWidth - 8)) + window.scrollX}px`;
 
         confirmBtn.addEventListener('click', async () => {
             const chosen = select.value;
@@ -426,3 +447,6 @@ async function showRolePicker(userId, userEmail, currentRole, buttonEl) {
 window.showRolePicker = showRolePicker;
 
 export { setupFormHandlers, setupNavigationHandlers, showSection, loadUsers };
+
+
+function inlineArg(value) { return escapeHtml(JSON.stringify(String(value ?? ''))); }

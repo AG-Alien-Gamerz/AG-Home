@@ -1,0 +1,122 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() { return request.auth != null; }
+    function verified() { return signedIn() && request.auth.token.email_verified == true; }
+    function email() { return signedIn() ? request.auth.token.get('email', '') : ''; }
+    function owner() { return verified() && email() in ['ag.aliengamerz@gmail.com', 'hamza.datashare@gmail.com']; }
+    // Profile rank is deliberately not an authorization source: old rules allowed self-assignment.
+    function rank() {
+      return !verified() ? 'USER' : owner() ? 'OWNER' :
+        exists(/databases/$(database)/documents/admins/$(email())) ?
+          (get(/databases/$(database)/documents/admins/$(email())).data.get('isSuperAdmin', false) ? 'SUPER_ADMIN' : 'ADMIN') :
+        exists(/databases/$(database)/documents/moderators/$(email())) ? 'MODERATOR' : 'USER';
+    }
+    function staff() { return rank() in ['OWNER', 'SUPER_ADMIN', 'ADMIN', 'MODERATOR']; }
+    function administrator() { return rank() in ['OWNER', 'SUPER_ADMIN', 'ADMIN']; }
+    function url(value) { return value is string && value.size() <= 2048 && value.matches('https?://[^/@: ]+\\.[^/@: ]+(:[0-9]+)?([/?#][^ ]*)?'); }
+    function platformLink(data, key) {
+      let p = data.platforms;
+      let l = data.links;
+      let state = data.get('linkStatus', {}).get(key, '');
+      return p[key] is bool && l[key] is string &&
+        (data.schemaVersion == 3 ?
+          (p[key] ? (state == 'ready' && url(l[key])) || (state == 'pending' && l[key] == '') : state == 'disabled' && l[key] == '') :
+          (p[key] ? url(l[key]) : l[key] == ''));
+    }
+    function compatibility(data) {
+      let keys = ['website', 'windows', 'linux', 'chromeOS', 'android', 'apple'];
+      return data.schemaVersion in [2, 3] && data.platforms is map && data.links is map &&
+        data.platforms.keys().hasAll(keys) && data.platforms.keys().hasOnly(keys) &&
+        data.links.keys().hasAll(keys) && data.links.keys().hasOnly(keys) &&
+        (data.schemaVersion == 2 || (data.linkStatus is map && data.linkStatus.keys().hasAll(keys) && data.linkStatus.keys().hasOnly(keys))) &&
+        platformLink(data, 'website') && platformLink(data, 'windows') &&
+        platformLink(data, 'linux') && platformLink(data, 'chromeOS') &&
+        platformLink(data, 'android') && platformLink(data, 'apple') &&
+        downloadWebsite(data) &&
+        data.get('websiteUrl', '') is string && (data.get('websiteUrl', '') == '' || (data.schemaVersion == 3 && url(data.websiteUrl))) &&
+        data.get('productLink', '') == (data.schemaVersion == 3 && data.links.website == '' ? data.get('websiteUrl', '') : data.links.website) && data.get('downloadLink', '') == data.downloadSite.url;
+    }
+    function downloadWebsite(data) {
+      let site = data.downloadSite;
+      let state = site.get('status', site.enabled ? 'ready' : 'disabled');
+      return site is map && site.keys().hasAll(['enabled', 'url']) && site.enabled is bool && site.url is string &&
+        (data.schemaVersion == 3 ?
+          site.keys().hasOnly(['enabled', 'url', 'status']) &&
+          (site.enabled ? (state == 'ready' && url(site.url)) || (state == 'pending' && site.url == '') : state == 'disabled' && site.url == '') :
+          site.keys().hasOnly(['enabled', 'url']) && (site.enabled ? url(site.url) : site.url == ''));
+    }
+    function productRelationships(data) {
+      let owners = data.get('ownerIds', []);
+      let areas = data.get('developmentCategories', []);
+      let members = exists(/databases/$(database)/documents/organization/main) ?
+        get(/databases/$(database)/documents/organization/main).data.get('memberIds', ['muhammad-hamza-sabir']) : ['muhammad-hamza-sabir'];
+      return owners is list && owners.size() <= 10 && owners.toSet().size() == owners.size() && owners.hasOnly(members) &&
+        areas is list && areas.size() <= 8 && areas.toSet().size() == areas.size() &&
+        areas.hasOnly(['frontend','backend','software','android','uiux','security','testingDeployment','researchInnovation']);
+    }
+    function validProduct(data) {
+      return data.name is string && data.name.size() > 0 && data.name.size() <= 200 &&
+        data.category is string && data.category.size() > 0 && ((data.price is number && data.price >= 0) || (data.schemaVersion == 3 && data.price == null)) &&
+        data.stock is int && data.stock >= -1 && data.rating is number && data.rating >= 0 && data.rating <= 5 &&
+        (data.image == null || (data.image is string && data.image.size() < 750000 && (url(data.image) || data.image.matches('data:image/(png|jpeg|webp|gif);base64,[A-Za-z0-9+/=]+')))) && compatibility(data) && productRelationships(data);
+    }
+    match /users/{uid} {
+      allow read: if signedIn() && (request.auth.uid == uid || administrator());
+      allow create: if signedIn() && request.auth.uid == uid && request.resource.data.email == email() &&
+        request.resource.data.role == 'USER' && request.resource.data.rank == 'USER' &&
+        request.resource.data.keys().hasOnly(['email','firstName','secondName','lastName','username','dateOfBirth','role','rank','createdAt']);
+      allow update: if signedIn() && request.auth.uid == uid &&
+        request.resource.data.diff(resource.data).affectedKeys().hasOnly(['firstName','secondName','lastName','username','dateOfBirth','email','updatedAt']) &&
+        request.resource.data.email == email();
+      allow delete: if owner() && resource.data.email != email() && !(resource.data.email in ['ag.aliengamerz@gmail.com','hamza.datashare@gmail.com']);
+    }
+    match /admins/{id} { allow read: if administrator() || (verified() && id == email()); allow write: if false; }
+    match /moderators/{id} { allow read: if staff() || (verified() && id == email()); allow write: if false; }
+    match /roleAssignments/{uid} { allow read: if signedIn() && (uid == request.auth.uid || administrator()); allow write: if false; }
+    match /products/{id} {
+      allow read: if true;
+      allow create: if staff() && validProduct(request.resource.data) && !request.resource.data.keys().hasAny(['catalogueImportedAt']);
+      allow update: if staff() && validProduct(request.resource.data) && !request.resource.data.diff(resource.data).affectedKeys().hasAny(['catalogueImportedAt']);
+      allow delete: if staff();
+    }
+    match /catalogue/{id} { allow read: if id == 'main'; allow write: if false; }
+    // Public biographies only; every mutation is validated by manageTeam.
+    match /organization/{id} { allow read: if id == 'main'; allow write: if false; }
+    match /messages/{id} {
+      allow read: if staff();
+      allow create: if verified() && request.resource.data.keys().hasOnly(['name','email','message','timestamp','userId','status','archived']) &&
+        request.resource.data.userId == request.auth.uid && request.resource.data.name is string && request.resource.data.name.size() <= 100 &&
+        request.resource.data.email is string && request.resource.data.email.size() <= 254 && request.resource.data.email.matches('[^ @]+@[^ @]+\\.[^ @]+') &&
+        request.resource.data.message is string && request.resource.data.message.size() > 0 && request.resource.data.message.size() <= 10000 &&
+        request.resource.data.status == 'unread' && request.resource.data.archived == false && request.resource.data.timestamp == request.time;
+      allow update: if staff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','archived','adminReply','handledBy','handledAt']);
+      allow delete: if staff();
+    }
+    match /reports/{id} {
+      allow read: if staff() || (verified() && resource.data.reportedBy == request.auth.uid);
+      allow create: if verified() && request.resource.data.keys().hasOnly(['productId','productName','productCategory','reason','details','reportedBy','userEmail','timestamp','status']) &&
+        request.resource.data.reportedBy == request.auth.uid && request.resource.data.userEmail == email() && request.resource.data.status == 'pending' &&
+        request.resource.data.reason is string && request.resource.data.reason.size() > 0 && request.resource.data.details is string && request.resource.data.details.size() <= 5000 &&
+        exists(/databases/$(database)/documents/products/$(request.resource.data.productId)) && request.resource.data.timestamp == request.time;
+      allow update: if staff() && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['status','updatedAt','updatedBy']);
+      allow delete: if staff();
+    }
+    match /controls/{id} { allow read: if verified(); allow write: if administrator(); }
+    match /adminSettings/{id} { allow read, write: if administrator(); }
+    match /adminTokens/{uid} {
+      allow read: if administrator() || (staff() && uid == request.auth.uid);
+      allow create, update: if staff() && uid == request.auth.uid && request.resource.data.email == email();
+      allow delete: if administrator() || (staff() && uid == request.auth.uid);
+    }
+    match /global_chat/{id} {
+      allow read: if staff();
+      allow create: if staff() && request.resource.data.senderId == request.auth.uid &&
+        request.resource.data.keys().hasOnly(['text','senderId','senderName','timestamp']) && request.resource.data.text is string && request.resource.data.text.size() > 0 && request.resource.data.text.size() <= 5000;
+    }
+    match /chats/{id} { allow read: if staff(); allow create: if staff() && request.resource.data.createdBy == request.auth.uid; allow update, delete: if staff() && (request.auth.uid == resource.data.createdBy || administrator()); }
+    match /status/{uid} { allow read: if staff(); allow write: if verified() && uid == request.auth.uid && request.resource.data.keys().hasOnly(['online','lastSeen']); }
+    match /admin_logs/{id} { allow read: if staff(); allow create: if staff() && request.resource.data.performedBy == email() && request.resource.data.keys().hasAll(['action','timestamp','performedBy']); allow update, delete: if false; }
+    match /{document=**} { allow read, write: if false; }
+  }
+}

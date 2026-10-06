@@ -1,6 +1,6 @@
 /**
  * Database Translator
- * 
+ *
  * Handles translation of dynamic content from Firestore
  * Supports both pre-stored translations and fallback to translation keys
  */
@@ -14,7 +14,7 @@ import { t, getCurrentLanguage } from './localization.js';
  * 2. Translations object (translations: { en: "...", ur: "..." })
  * 3. Translation key reference (translationKey: "product.xyz")
  * 4. Default field with fallback language
- * 
+ *
  * @param {Object} item - Database item
  * @param {string} field - Field name to get translation for (e.g., 'name', 'description')
  * @param {string} lang - Language code (optional, defaults to current language)
@@ -33,7 +33,7 @@ export function getTranslated(item, field, lang = getCurrentLanguage()) {
     if (item.translations && item.translations[field]) {
         const fieldTranslations = item.translations[field];
         if (typeof fieldTranslations === 'object' && fieldTranslations[lang]) {
-            return fieldTranslations[field][lang];
+            return fieldTranslations[lang];
         }
     }
 
@@ -48,12 +48,12 @@ export function getTranslated(item, field, lang = getCurrentLanguage()) {
         return item[field];
     }
 
-    return '';
+    return item[`${field}_en`] || item[`${field}_ur`] || '';
 }
 
 /**
  * Translate an entire object's fields
- * 
+ *
  * @param {Object} item - Database item
  * @param {Array<string>} fields - Array of field names to translate
  * @param {string} lang - Language code (optional)
@@ -71,7 +71,7 @@ export function translateObject(item, fields, lang = getCurrentLanguage()) {
 
 /**
  * Translate an array of objects
- * 
+ *
  * @param {Array<Object>} items - Array of database items
  * @param {Array<string>} fields - Fields to translate
  * @param {string} lang - Language code (optional)
@@ -84,7 +84,7 @@ export function translateArray(items, fields, lang = getCurrentLanguage()) {
 
 /**
  * Get translated product
- * 
+ *
  * @param {Object} product - Product object from Firestore
  * @param {string} lang - Language code (optional)
  * @returns {Object} Product with translated fields
@@ -95,7 +95,7 @@ export function translateProduct(product, lang = getCurrentLanguage()) {
 
 /**
  * Get translated article
- * 
+ *
  * @param {Object} article - Article object from Firestore
  * @param {string} lang - Language code (optional)
  * @returns {Object} Article with translated fields
@@ -107,7 +107,7 @@ export function translateArticle(article, lang = getCurrentLanguage()) {
 /**
  * Set up listener for language changes
  * Useful to update translated UI when language is changed
- * 
+ *
  * @param {Function} callback - Function to call when language changes
  * @returns {Function} Unsubscribe function
  */
@@ -115,9 +115,9 @@ export function onLanguageChange(callback) {
     const handler = (event) => {
         callback(event.detail?.language || getCurrentLanguage());
     };
-    
+
     window.addEventListener('languageChanged', handler);
-    
+
     // Return unsubscribe function
     return () => {
         window.removeEventListener('languageChanged', handler);
@@ -126,9 +126,9 @@ export function onLanguageChange(callback) {
 
 /**
  * HOW TO STORE TRANSLATIONS IN FIRESTORE
- * 
+ *
  * Choose ONE of these patterns for your database:
- * 
+ *
  * OPTION 1: Language-specific fields (Recommended for simple content)
  * ────────────────────────────────────────────────────────────────
  * Collection: products
@@ -145,13 +145,13 @@ export function onLanguageChange(callback) {
  *   image: "https://...",
  *   createdAt: timestamp
  * }
- * 
+ *
  * Usage in code:
  * const product = await getDoc(...);
  * const translated = translateProduct(product);
  * console.log(translated.name); // Shows urdu or english based on language
- * 
- * 
+ *
+ *
  * OPTION 2: Translations nested object
  * ────────────────────────────────────
  * {
@@ -159,7 +159,7 @@ export function onLanguageChange(callback) {
  *   name: "Wireless Headphones",  // Default/English
  *   translations: {
  *     name: { en: "Wireless Headphones", ur: "وائرلیس ہیڈ فونز" },
- *     description: { 
+ *     description: {
  *       en: "High-quality wireless headphones",
  *       ur: "اعلیٰ معیار کے وائرلیس ہیڈ فونز"
  *     },
@@ -169,12 +169,12 @@ export function onLanguageChange(callback) {
  *   image: "https://...",
  *   createdAt: timestamp
  * }
- * 
+ *
  * Usage:
  * const product = await getDoc(...);
  * const translated = translateProduct(product);
- * 
- * 
+ *
+ *
  * OPTION 3: Translation keys (for reusable content)
  * ──────────────────────────────────────────────────
  * {
@@ -188,30 +188,30 @@ export function onLanguageChange(callback) {
  *   image: "https://...",
  *   createdAt: timestamp
  * }
- * 
+ *
  * Then add to localization.js:
  * 'product.wireless_headphones': 'Wireless Headphones',
  * 'category.electronics': 'Electronics',
- * 
+ *
  * Usage:
  * const product = await getDoc(...);
  * const translated = translateProduct(product);
- * 
- * 
+ *
+ *
  * SCHEMA EXAMPLES FOR DIFFERENT CONTENT TYPES:
- * 
+ *
  * Products (Option 1 - Language fields):
  * {
  *   id, name_en, name_ur, description_en, description_ur,
  *   category_en, category_ur, price, image, rating, inStock
  * }
- * 
+ *
  * Blog Posts (Option 2 - Translations object):
  * {
  *   id, author, translations: { title, content, summary },
  *   tags, publishedAt, createdAt, updatedAt
  * }
- * 
+ *
  * Pages/Content (Option 3 - Translation keys):
  * {
  *   id, title, content,

@@ -1,21 +1,23 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="auth-pending">
 <head>
+    <script src="/theme-init.js"></script>
+    <script src="/site-loader.js"></script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AG | Home</title>
     <link rel="stylesheet" href="css/styles_1.css">
-    <link rel="icon" href="https://raw.githubusercontent.com/AG-Pixel-creater/AG-Home/refs/heads/master/logo.png" type="logo.png">
+    <link rel="icon" href="/logo.png" type="logo.png">
 
     <meta name="description" content="AG Electronics Pvt Ltd کا آفیشل پورٹل۔ سافٹ ویئر، ڈیجیٹل مصنوعات اور آن لائن خدمات کے لیے آپ کا بھروسہ مند پارٹنر۔">
 
     <meta name="robots" content="index, follow">
-</head>
-<body data-theme="dark">
+<link rel="stylesheet" href="css/styles.css"><link rel="stylesheet" href="css/refinements.css"><link rel="stylesheet" href="css/character.css"></head>
+<body data-theme="light">
     <!-- Add Loader -->
     <div class="loader-container">
         <div class="logo-loader">
-            <img src="https://raw.githubusercontent.com/AG-Pixel-creater/AG-Home/refs/heads/master/logo.png" alt="Logo">
+            <img src="/logo.png" alt="Logo">
             <div class="smoke-ring"></div>
             <div class="smoke-ring" style="animation-delay: 0.5s"></div>
             <div class="smoke-ring" style="animation-delay: 1s"></div>
@@ -34,7 +36,7 @@
                 <!-- <h1><span class="" id="dynamicText attractive-text">Tech Reveal's Here</span></h1> -->
             </div>
             <!-- <div align="center" class="logo-container">
-                <img src="https://raw.githubusercontent.com/AG-Pixel-creater/AG-Home/refs/heads/master/logo.png" alt="Logo" class="logo" align="center"> 
+                <img src="/logo.png" alt="Logo" class="logo" align="center">
             </div> -->
             <div class="header-controls">
                 <button id="settingsBtn" class="settings-btn" title="Settings">
@@ -49,6 +51,7 @@
             <ul>
                 <li class="active"><a href="home.html" data-i18n="nav.home">Home</a></li>
                 <li><a href="about.html" data-i18n="nav.about">About Us</a></li>
+                <li><a href="team.html" data-i18n="team.title">Our Team</a></li>
                 <li><a href="products.html" data-i18n="nav.products">Products</a></li>
                 <li><a href="privacy.html" data-i18n="nav.privacy">Privacy</a></li>
                 <li><a href="contact.html" data-i18n="nav.contact">Contact Us</a></li>
@@ -56,11 +59,29 @@
         </nav>
         <br>
         <div class="container">
-            <!-- Add your dashboard content here -->
-            <h2 data-i18n="body.heading.home">Welcome to AG Electronics Pvt. Ltd.</h2>
-            <p data-i18n="body.description.home">Your trusted partner in softwares mainly.</p>
+            <main class="ag-home">
+                <section class="ag-home-hero">
+                    <div class="home-welcome"><span class="eyebrow">AG HOME</span>
+                        <h2 data-i18n="home.title">Everything AG, in one place.</h2>
+                        <p data-i18n="home.description">Explore AG products, learn about AG and get in touch. Welcome to our home on the web.</p>
+                        <div class="hero-actions"><a class="primary-btn" href="products.html"><span data-i18n="home.products">Explore AG products</span><span class="link-arrow" aria-hidden="true">↗</span></a><a class="secondary-btn" href="about.html" data-i18n="nav.about">About Us</a></div>
+                    </div>
+                    <div class="ag-brand-scene" aria-hidden="true">
+                        <div class="brand-orbit orbit-one"></div><div class="brand-orbit orbit-two"></div>
+                        <div class="ag-brand-core"><img src="/logo.png" alt=""><span>AG HOME</span></div>
+                        <div class="orbit-node node-products">▦</div><div class="orbit-node node-community">◌</div><div class="orbit-node node-connect">↗</div>
+                        <span class="scene-caption">AG · HOME</span>
+                    </div>
+                </section>
+                <section class="home-destinations">
+                    <a class="home-destination" href="products.html"><span class="destination-icon" aria-hidden="true">▦</span><h3 data-i18n="nav.products">Products</h3><p data-i18n="home.productsText"></p><span class="destination-arrow" aria-hidden="true">↗</span></a>
+                    <a class="home-destination" href="about.html"><span class="destination-icon" aria-hidden="true">◎</span><h3 data-i18n="nav.about">About Us</h3><p data-i18n="home.aboutText"></p><span class="destination-arrow" aria-hidden="true">↗</span></a>
+                    <a class="home-destination" href="contact.html"><span class="destination-icon" aria-hidden="true">✉</span><h3 data-i18n="nav.contact">Contact Us</h3><p data-i18n="home.contactText"></p><span class="destination-arrow" aria-hidden="true">↗</span></a>
+                </section>
+                <section class="home-catalogue" aria-labelledby="homeProductsHeading"><div class="section-header"><div><span class="eyebrow">AG</span><h2 id="homeProductsHeading" data-i18n="home.products">Explore AG products</h2></div><a href="products.html" class="text-link"><span data-i18n="product.all">All products</span><span class="link-arrow" aria-hidden="true">↗</span></a></div><div id="homeProducts" class="home-product-grid" aria-live="polite"><p class="loading" data-i18n="product.loadingProducts">Loading products...</p></div></section>
+            </main>
             <!-- Settings Modal -->
-            <div id="settingsModal" class="modal">
+            <div id="settingsModal" class="modal hidden">
                 <div class="modal-content">
                     <form class="settings-form">
                         <div class="settings-section">
@@ -88,7 +109,7 @@
             </div>
         </div>
     </div>
-    
+
     <footer>
         <p></p>
     </footer>

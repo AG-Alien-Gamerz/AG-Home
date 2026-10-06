@@ -1,58 +1,38 @@
-import { initializeApp } from 'firebase/app';
-import { getAuth } from 'firebase/auth';
-import { getMessaging } from 'firebase/messaging';
+import { initializeApp, getApps, getApp } from 'firebase/app';
+import { getAuth, connectAuthEmulator } from 'firebase/auth';
+import { getFirestore, connectFirestoreEmulator } from 'firebase/firestore';
 import { getFunctions, connectFunctionsEmulator } from 'firebase/functions';
-import { getFirestore } from 'firebase/firestore';
+import { getMessaging } from 'firebase/messaging';
 
-// Firebase configuration - Load from .env file
-const firebaseConfig = {
-    apiKey: "AIzaSyBfu4YI21vaAPeW6WbElRL56PHbxl6knb0",
-    authDomain: "ag-home-3db3f.firebaseapp.com",
-    projectId: "ag-home-3db3f",
-    storageBucket: "ag-home-3db3f.firebasestorage.app",
-    messagingSenderId: "384219186370",
-    appId: "1:384219186370:web:b6b69a39d6cc5affa8e75b",
-    measurementId: "G-5W214BQMNJ" 
+const env = import.meta.env;
+export const firebaseConfig = {
+    apiKey: env.VITE_FIREBASE_API_KEY || 'AIzaSyBfu4YI21vaAPeW6WbElRL56PHbxl6knb0',
+    authDomain: env.VITE_FIREBASE_AUTH_DOMAIN || 'ag-home-3db3f.firebaseapp.com',
+    projectId: env.VITE_FIREBASE_PROJECT_ID || 'ag-home-3db3f',
+    storageBucket: env.VITE_FIREBASE_STORAGE_BUCKET || 'ag-home-3db3f.firebasestorage.app',
+    messagingSenderId: env.VITE_FIREBASE_MESSAGING_SENDER_ID || '384219186370',
+    appId: env.VITE_FIREBASE_APP_ID || '1:384219186370:web:b6b69a39d6cc5affa8e75b',
+    measurementId: env.VITE_FIREBASE_MEASUREMENT_ID || 'G-5W214BQMNJ'
 };
-
-// App configuration - Load from .env file
 export const appConfig = {
-    adminEmail: import.meta.env.VITE_ADMIN_EMAIL,
-    environment: import.meta.env.VITE_ENVIRONMENT,
-    functionsRegion: import.meta.env.VITE_FUNCTIONS_REGION || 'us-central1',
-    functionsEmulatorHost: import.meta.env.VITE_FUNCTIONS_EMULATOR_HOST,
-    functionsEmulatorPort: import.meta.env.VITE_FUNCTIONS_EMULATOR_PORT
+    adminEmail: env.VITE_ADMIN_EMAIL,
+    environment: env.VITE_ENVIRONMENT,
+    functionsRegion: env.VITE_FUNCTIONS_REGION || 'us-central1',
+    functionsEmulatorHost: env.VITE_FUNCTIONS_EMULATOR_HOST,
+    functionsEmulatorPort: env.VITE_FUNCTIONS_EMULATOR_PORT,
+    mfaEnabled: env.VITE_ENABLE_TOTP_MFA === 'true'
 };
-
-// Log which source the config came from
-console.log('[firebase-config] Using Firebase configuration from:', 
-    import.meta.env.VITE_FIREBASE_API_KEY ? 'environment variables (.env)' : 'fallback/hardcoded values'
-);
-
-console.log('[firebase-config] App configuration loaded from .env:', appConfig);
-
-// Validate Firebase config
-if (!firebaseConfig.apiKey || !firebaseConfig.projectId) {
-    console.error('[firebase-config] Invalid Firebase configuration - missing required fields');
-}
-
-const app = initializeApp(firebaseConfig);
+export const app = getApps().length ? getApp() : initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const messaging = getMessaging(app);
-// Use the region from environment variables
-export const functions = getFunctions(app, import.meta.env.VITE_FUNCTIONS_REGION || 'us-central1');
-
-// If running on localhost, connect the Functions emulator to avoid CORS and deployed function issues.
-try {
-    if (typeof window !== 'undefined' && (window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1')) {
-        const emulatorHost = import.meta.env.VITE_FUNCTIONS_EMULATOR_HOST || 'localhost';
-        const emulatorPort = parseInt(import.meta.env.VITE_FUNCTIONS_EMULATOR_PORT || '5001');
-        connectFunctionsEmulator(functions, emulatorHost, emulatorPort);
-        console.log(`[firebase-config] Connected Functions emulator at http://${emulatorHost}:${emulatorPort}`);
-    }
-} catch (e) {
-    console.warn('[firebase-config] Could not connect functions emulator:', e);
+export const functions = getFunctions(app, appConfig.functionsRegion);
+export let messaging = null;
+try { messaging = getMessaging(app); } catch { /* Push is optional on unsupported browsers. */ }
+// Never silently redirect localhost to emulators that were not requested.
+if (env.DEV && env.VITE_USE_EMULATORS === 'true') {
+    const host = env.VITE_FUNCTIONS_EMULATOR_HOST || '127.0.0.1';
+    connectAuthEmulator(auth, `http://${host}:9099`, { disableWarnings: true });
+    if (firebaseConfig.projectId.startsWith('demo-')) auth.settings.appVerificationDisabledForTesting = true;
+    connectFirestoreEmulator(db, host, 8080);
+    connectFunctionsEmulator(functions, host, Number(env.VITE_FUNCTIONS_EMULATOR_PORT || 5001));
 }
-// Export the raw config for diagnostics (safe read-only use)
-export { firebaseConfig };
