@@ -25,6 +25,13 @@ function init() {
     let footer = document.querySelector('footer');
     if (!footer) { footer = document.createElement('footer'); document.body.append(footer); }
     if (!footer.textContent.trim()) footer.innerHTML = `<a class="brand" href="${pageURL('home.html')}">AG Home</a><p data-i18n="home.description">${t('home.description')}</p><div><a href="${pageURL('privacy.html')}" data-i18n="nav.privacy">${t('nav.privacy')}</a> · <a href="${pageURL('contact.html')}" data-i18n="nav.contact">${t('nav.contact')}</a></div><small>© ${new Date().getFullYear()} AG Home</small>`;
+    const controls = document.querySelector('header .header-controls');
+    let accountEntry = controls?.querySelector('.account-entry');
+    if (controls && !accountEntry) {
+        accountEntry = document.createElement('a'); accountEntry.className = 'account-entry secondary-btn';
+        accountEntry.href = pageURL('index.html'); accountEntry.dataset.i18n = 'login.submit';
+        accountEntry.textContent = t('login.submit'); controls.append(accountEntry);
+    }
     onAuthStateChanged(auth, async user => {
         const protectedPage = location.pathname.endsWith('/home.html');
         if (requiresEmailVerification(user)) {
@@ -34,6 +41,12 @@ function init() {
         if (!user && protectedPage) { location.replace(pageURL('index.html')); return; }
         if (protectedPage && !user.email) { location.replace(pageURL('products.html')); return; }
         document.documentElement.classList.remove('auth-pending');
+        if (accountEntry) {
+            const signedIn = !!user?.emailVerified && !!user.email;
+            accountEntry.href = pageURL(signedIn ? 'home.html' : 'index.html');
+            accountEntry.dataset.i18n = signedIn ? 'nav.home' : 'login.submit';
+            accountEntry.textContent = t(accountEntry.dataset.i18n);
+        }
         const display = document.getElementById('userDisplay');
         if (display) { display.textContent = user?.displayName || user?.email || (user ? t('auth.guest') : ''); display.classList.toggle('hidden', localStorage.getItem('showEmail') === 'false'); }
         document.getElementById('logoutBtn')?.classList.toggle('hidden', !user);

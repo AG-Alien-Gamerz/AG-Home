@@ -3091,6 +3091,11 @@ body>br,.background-content>br,header br {
 }
 
 .background-content>header,.site-header {
+    /* A cancelled/disabled legacy fade must never hide navigation or Settings. */
+    opacity: 1;
+    visibility: inherit;
+    transform: none;
+    animation: none;
     width: min(1200px,calc(100% - 48px));
     margin: auto;
     display: flex;
@@ -3151,6 +3156,10 @@ header h1 {
 .settings-btn svg {
     min-width: 20px
 }
+
+.auth-load-error { grid-column: 1 / -1; padding: 16px; margin-block: 12px; border: 1px solid var(--line); border-inline-start: 3px solid var(--danger); border-radius: 10px; background: var(--surface-alt); color: var(--ink); }
+.auth-load-error button { margin-block-start: 10px; }
+.header-controls .account-entry { flex-shrink: 0; white-space: nowrap; }
 
 .brand {
     display: inline-flex;
@@ -5022,6 +5031,10 @@ h1,h2,h3,h4 {
 
 footer {
     display: block!important;
+    opacity: 1;
+    visibility: inherit;
+    transform: none;
+    animation: none;
     position: static!important;
     border-radius: 0!important;
     box-shadow: none!important;

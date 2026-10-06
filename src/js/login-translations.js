@@ -36,3 +36,5 @@ const credentialErrors = {
     ko:'이메일, 사용자 이름 또는 비밀번호가 올바르지 않습니다.', id:'Email, nama pengguna, atau kata sandi salah.'
 };
 for (const [language,message] of Object.entries(credentialErrors)) loginTranslations[language]['auth.invalidCredentials']=message;
+const reloadLabels = { en:'Reload', ur:'دوبارہ لوڈ کریں', ar:'إعادة التحميل', tr:'Yeniden yükle', ja:'再読み込み', zh:'重新加载', pa:'دوبارہ لوڈ کرو', ps:'بیا پورته کړئ', bal:'دگہ لوڈ کنیت', fr:'Recharger', es:'Recargar', de:'Neu laden', sd:'ٻيهر لوڊ ڪريو', hnd:'دوبارہ لوڈ کرو', skr:'ول لوڈ کرو', hi:'फिर लोड करें', ur_roman:'Dobara load karein', bn:'আবার লোড করুন', ru:'Перезагрузить', it:'Ricarica', pt:'Recarregar', ko:'새로고침', id:'Muat ulang' };
+for (const [language,label] of Object.entries(reloadLabels)) loginTranslations[language]['auth.reload']=label;

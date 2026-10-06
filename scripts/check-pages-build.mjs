@@ -3,6 +3,7 @@ import {resolve,relative,sep} from 'node:path';
 
 const directory=resolve('dist'),base='/AG-Home/';
 const required=['index.html','home.html','about.html','team.html','contact.html','control.html','privacy.html','products.html','auth-action.html','404.html','.nojekyll','manifest.json','firebase-messaging-sw.js','theme-init.js','site-loader.js','logo.png','data/offices.csv','team/muhammad-hamza-sabir.png'];
+required.push('auth-entry.js');
 const failures=[];
 async function checkLink(value,source) {
     if(!value || value.startsWith('#') || /^(?:[a-z][a-z\d+.-]*:|\/\/)/i.test(value))return;

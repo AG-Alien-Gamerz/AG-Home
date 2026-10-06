@@ -123,6 +123,8 @@ Run `npm test`, `npm run test:rules`, `npm run test:functions` and `npm run test
 
 ## Pages and modules
 
+The public header includes a localized account link: **Log In** for visitors and **Home** for verified email sessions. Header/footer visibility does not depend on completing an entrance animation. On the login entry, `public/auth-entry.js` bounds the initial hidden auth state to eight seconds: failed/delayed startup reveals a recovery box with Reload instead of leaving a blank page. Until Firebase has resolved the initial state, it blocks native auth form submission and provider actions; it never grants access to protected pages. Late initialization dismisses the recovery message. Run `npm run test:entry` for the isolated production-bundle checks (desktop/mobile, four themes, interrupted animations, blocked/late startup, RTL and reduced motion); these checks block external service requests.
+
 | Area | Entry points |
 | --- | --- |
 | Logged-out login/signup/reset | `src/index.html`, `app.js`, `auth-service.js`, `auth-validation.js` |

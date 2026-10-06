@@ -38,13 +38,17 @@ function showVerification() {
 }
 onAuthStateChanged(auth, async user => {
     if (authenticating) return;
-    if (user?.email && user.emailVerified) { goHome(); return; }
+    if (user?.email && user.emailVerified) { document.dispatchEvent(new Event('ag:auth-ready')); goHome(); return; }
     if (requiresEmailVerification(user)) {
         authenticating = true;
         try { await rejectUnverifiedSession(user); } catch (error) { toast(authError(error), 'error'); }
         finally { authenticating = false; }
     }
     showVerification(); document.documentElement.classList.remove('auth-pending');
+    document.dispatchEvent(new Event('ag:auth-ready'));
+}, error => {
+    document.dispatchEvent(new Event('ag:auth-error'));
+    toast(authError(error), 'error');
 });
 async function finishSignIn(user, resend = false) {
     await reload(user);
